@@ -1,0 +1,1 @@
+- use console.debug() in stead of fmt.Print* which defaults to info (?)
