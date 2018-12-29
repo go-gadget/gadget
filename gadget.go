@@ -1,8 +1,8 @@
 package gadget
 
 import (
-	"j"
-	"vtree"
+	"github.com/go-gadget/gadget/j"
+	"github.com/go-gadget/vtree"
 )
 
 type Action interface {

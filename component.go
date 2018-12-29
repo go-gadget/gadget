@@ -1,9 +1,9 @@
 package gadget
 
 import (
-	"j"
+	"github.com/go-gadget/gadget/j"
 	"reflect"
-	"vtree"
+	"github.com/go-gadget/gadget/vtree"
 )
 
 /*
