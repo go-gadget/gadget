@@ -2,7 +2,7 @@ package gadget
 
 import (
 	"github.com/go-gadget/gadget/j"
-	"github.com/go-gadget/vtree"
+	"github.com/go-gadget/gadget/vtree"
 )
 
 type Action interface {
