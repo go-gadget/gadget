@@ -1,7 +1,7 @@
 package vtree
 
 import (
-	"j"
+	"github.com/go-gadget/gadget/j"
 	"strings"
 	"syscall/js"
 )
