@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	. "gadget"
-	"j"
-	"vtree"
+	. "github.com/go-gadget/gadget"
+	"github.com/go-gadget/gadget/j"
+	"github.com/go-gadget/gadget/vtree"
 )
 
 /*
