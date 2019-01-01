@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"path"
 )
 
 var (
@@ -16,11 +18,17 @@ func main() {
 	log.Printf("listening on %q...", *listen)
 	http.HandleFunc("/wasm_exec.js", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
-		http.ServeFile(w, r, r.URL.Path[1:])
+		goroot := os.Getenv("GOROOT")
+		if goroot == "" {
+			panic("No $GOROOT set, don't know where to find wasm_exec.js")
+		}
+		http.ServeFile(w, r, path.Join(goroot, "misc/wasm/wasm_exec.js"))
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		http.ServeFile(w, r, r.URL.Path[1:]+"index.html")
+		// if explicit file specified:
+		// http.ServeFile(w, r, r.URL.Path[1:]+"index.html")
+		w.Write([]byte(index_html()))
 	})
 	http.HandleFunc("/lib.wasm", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/wasm")

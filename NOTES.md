@@ -1,6 +1,9 @@
 # Notes, Todos
 
 ## Small tasks
+- implement actual "serve" subcommand on gadget command
+- serve wasm_exec js from GO directly (since version specific)
+- serve index.html from .. somewhere?
 - implement forloop-vars (first, last, index, number, even, odd)
 - implement forloop variables ("i in sequence")
 - g-if: test generic truthyness
