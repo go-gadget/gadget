@@ -1,14 +1,20 @@
 package vtree
 
-
 type DummyBridge struct {
 }
 
-func NewDomBridge() *DummyBridge {
+type BridgeBuilder func() Subject
+
+var Builder BridgeBuilder
+
+func NewDummyBridge() Subject {
 	b := &DummyBridge{}
 	return b
 }
 
+func init() {
+	Builder = NewDummyBridge
+}
 
 func (b *DummyBridge) SyncState(From Node) {}
 

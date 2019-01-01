@@ -1,14 +1,18 @@
 package vtree
 
 import (
-	"github.com/go-gadget/gadget/j"
 	"strings"
 	"syscall/js"
+
+	"github.com/go-gadget/gadget/j"
 )
 
 // Make this a wasm_only file?
 
 // A bridge implements the Subject interface
+func init() {
+	Builder = NewDomBridge
+}
 
 type DomBridge struct {
 	Doc   js.Value
@@ -16,7 +20,7 @@ type DomBridge struct {
 	Nodes map[ElementID]js.Value
 }
 
-func NewDomBridge() *DomBridge {
+func NewDomBridge() Subject {
 	// we can/should probably pass this in? Might even allow "mocking"
 	// perhaps create an abstraction in general first.
 	doc := js.Global().Get("document")
