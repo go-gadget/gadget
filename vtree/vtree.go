@@ -61,6 +61,7 @@ type Node interface {
 
 type callable func()
 
+// An Element node is a regular old html element, e.g. <div>
 type Element struct {
 	ID         ElementID // not sure if this is a good idea. E.g. rerunning for-loops shouldn't create new elements
 	Type       string
@@ -70,9 +71,13 @@ type Element struct {
 	Setter     func(string)
 }
 
+// A Text node contains the text within an Element node. It doesn't have much special properties
 type Text struct {
 	ID   ElementID
 	Text string
+}
+
+type Component struct {
 }
 
 func (t *Text) GetID() ElementID {

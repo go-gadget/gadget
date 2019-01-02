@@ -58,3 +58,18 @@ func AssertTextNode(t *testing.T, node Node, content string) {
 
 	}
 }
+
+// AssertComponentNode asserts that node is a component node of a specific type/name
+func AssertComponentNode(t *testing.T, node Node, Type string) {
+	t.Helper()
+
+	tComponent, ok := node.(*Component)
+
+	if !ok {
+		t.Errorf("Expected node to be Component, got %T", node)
+	}
+
+	if tComponent.Type != Type {
+		t.Errorf("Expected component type to be %s, got %s", Type, tComponent.Type)
+	}
+}
