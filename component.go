@@ -1,8 +1,9 @@
 package gadget
 
 import (
-	"github.com/go-gadget/gadget/j"
 	"reflect"
+
+	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
 
@@ -27,7 +28,7 @@ import (
 type Handler func(chan Action)
 
 type ComponentInf interface {
-	Init(chan string)
+	Init()
 	Template() string
 	Data() interface{}
 	Handlers() map[string]Handler // Actions ?
@@ -71,18 +72,6 @@ type Component struct {
 	Comp   ComponentInf
 	Tree   *vtree.Element
 	Update chan Action
-}
-
-func NewComponent() *Component {
-	return &Component{Update: nil}
-}
-
-type Builder func() ComponentInf
-
-func (g *Component) Build(b Builder) {
-	g.Comp = b()
-	// Parsed but not rendered
-	g.Tree = vtree.Parse(g.Comp.Template())
 }
 
 func (g *Component) RawSetValue(key string, val interface{}) {

@@ -26,11 +26,21 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 	}
 }
 
+type Builder func() ComponentInf
+
+func (g *Gadget) BuildComponent(b Builder) *Component {
+	comp := &Component{Comp: b(), Update: nil}
+	comp.Comp.Init()
+	comp.Tree = vtree.Parse(comp.Comp.Template())
+	return comp
+}
+
 func (g *Gadget) Mount(c *Component) {
 	// Not sure if this really is mounting
 	// probably needs lock
 	g.Components = append(g.Components, c)
 	c.Update = g.Chan
+	// c.Mounted() hook?
 }
 
 func (g *Gadget) SyncState(Tree vtree.Node) {
