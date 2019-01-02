@@ -27,7 +27,7 @@ import (
  */
 type Handler func(chan Action)
 
-type ComponentInf interface {
+type Component interface {
 	Init()
 	Template() string
 	Data() interface{}
@@ -35,7 +35,7 @@ type ComponentInf interface {
 }
 
 type ActionData struct {
-	component *Component
+	component *WrappedComponent
 	node      vtree.Node
 }
 type SetAction struct {
@@ -44,7 +44,7 @@ type SetAction struct {
 	value    interface{}
 }
 
-func (a *ActionData) Component() *Component {
+func (a *ActionData) Component() *WrappedComponent {
 	// how to avoid this repetition for all actions?
 	return a.component
 }
@@ -68,13 +68,13 @@ func (a *UserAction) Run() {
 	a.component.HandleEvent(a.handler)
 }
 
-type Component struct {
-	Comp   ComponentInf
+type WrappedComponent struct {
+	Comp   Component
 	Tree   *vtree.Element
 	Update chan Action
 }
 
-func (g *Component) RawSetValue(key string, val interface{}) {
+func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
 
 	// return err?
 	// use resolve to handle errors?
@@ -98,7 +98,7 @@ func (g *Component) RawSetValue(key string, val interface{}) {
 	// }
 }
 
-func (g *Component) SetValue(key string, val interface{}) {
+func (g *WrappedComponent) SetValue(key string, val interface{}) {
 	// Perhaps set doesn't need to happen immediately if Get() is also
 	// intercepted..
 	g.RawSetValue(key, val)
@@ -109,7 +109,7 @@ func (g *Component) SetValue(key string, val interface{}) {
 		value:    val}
 }
 
-func (g *Component) bindSpecials(node *vtree.Element) {
+func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 	// recusively do stuff
 	for k, v := range node.Attributes {
 		if k == "g-click" {
@@ -143,7 +143,7 @@ func (g *Component) bindSpecials(node *vtree.Element) {
 		}
 	}
 }
-func (g *Component) Render() *vtree.Element {
+func (g *WrappedComponent) Render() *vtree.Element {
 	// This is actually a 2-step proces, just like builtin templates:
 	// - compile, compiles text to tree
 	// - render, evaluates expressions
@@ -168,6 +168,6 @@ func (g *Component) Render() *vtree.Element {
 	return tree
 }
 
-func (g *Component) HandleEvent(event string) {
+func (g *WrappedComponent) HandleEvent(event string) {
 	g.Comp.Handlers()[event](g.Update)
 }

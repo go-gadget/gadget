@@ -7,35 +7,35 @@ import (
 
 type Action interface {
 	Run()
-	Component() *Component
+	Component() *WrappedComponent
 	Node() vtree.Node
 }
 
 type Gadget struct {
 	Chan       chan Action
-	Components []*Component
-	Trees      map[*Component]*vtree.Element
+	Components []*WrappedComponent
+	Trees      map[*WrappedComponent]*vtree.Element
 	Bridge     vtree.Subject
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
 	return &Gadget{
 		Chan:   make(chan Action),
-		Trees:  make(map[*Component]*vtree.Element),
+		Trees:  make(map[*WrappedComponent]*vtree.Element),
 		Bridge: bridge,
 	}
 }
 
-type Builder func() ComponentInf
+type Builder func() Component
 
-func (g *Gadget) BuildComponent(b Builder) *Component {
-	comp := &Component{Comp: b(), Update: nil}
+func (g *Gadget) BuildComponent(b Builder) *WrappedComponent {
+	comp := &WrappedComponent{Comp: b(), Update: nil}
 	comp.Comp.Init()
 	comp.Tree = vtree.Parse(comp.Comp.Template())
 	return comp
 }
 
-func (g *Gadget) Mount(c *Component) {
+func (g *Gadget) Mount(c *WrappedComponent) {
 	// Not sure if this really is mounting
 	// probably needs lock
 	g.Components = append(g.Components, c)
@@ -62,33 +62,12 @@ func (g *Gadget) MainLoop() {
 	// Better is to save / queue them and handle them in one go.
 	// This probably means a go-routine needs to explicitly trigger an update
 	/*
-		 * Certain triggers cause the mainloop to loop. Normally the application
-		 * is idle, except when:
-		 * - a timer expires
-		 * - an event (that's being listened to) triggers
-		 * - IO ?
-
-		 Click:
-		 - gebruiker clickt op een button. In de backburner (?) wordt een UserAction geplaatst
-		 - Backburner loop ontvangt action en zet deze in de queue
-		 ... en of danwel, deze wordt opgepakt
-
-		 De handler van de click wordt aangeroepen. Deze Set() variabelen (met mogelijk UI changes
-		tot gevolg). Dus uit het afhandelen van de action worden nieuwe taken aangemaakt
-
-		Eigenlijk wil je continue taken blijven afhandelen. Maar op een gegeven moment wil je er een klap
-		op geven en de updates doorvoeren. Je wil niet (?) na iedere Set() de ui updaten.
-
-		Wanneer is het werk "klaar"? In dit geval als de handler klaar is.
-
-		Dus de Run() van Action produceert nieuwe taken
-
-		Ember: MainLoop -> RunLoop
-		Ember heeft meerdere priority Queues:
-		 - sync, actions, route transitions, ...
-
-		Nieuwe taken moeten consumed worden.
-	*/
+	 * Certain triggers cause the mainloop to loop. Normally the application
+	 * is idle, except when:
+	 * - a timer expires
+	 * - an event (that's being listened to) triggers
+	 * - IO ?
+	 */
 
 	var queue []Action
 	wakeup := make(chan bool)
@@ -117,7 +96,7 @@ func (g *Gadget) MainLoop() {
 	}
 
 	for {
-		workTrees := make(map[*Component]*vtree.Element)
+		workTrees := make(map[*WrappedComponent]*vtree.Element)
 		j.J("Sleeping until there's some work")
 		<-wakeup
 		j.J("There's work!", len(queue), queue[0])
