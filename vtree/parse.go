@@ -34,7 +34,6 @@ func Parse(s string) *Element {
 			element := token.(xml.StartElement)
 			name := element.Name.Local
 
-			// fmt.Printf("It's a StartElement <%s>\n", name)
 			if root == nil {
 				root = El(name)
 				current = root

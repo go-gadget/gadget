@@ -32,6 +32,7 @@ type Component interface {
 	Template() string
 	Data() interface{}
 	Handlers() map[string]Handler // Actions ?
+	Components() map[string]Builder
 }
 
 type ActionData struct {
@@ -143,12 +144,14 @@ func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 		}
 	}
 }
-func (g *WrappedComponent) Render() *vtree.Element {
+func (g *WrappedComponent) Render(handler vtree.ComponentRenderer) *vtree.Element {
 	// This is actually a 2-step proces, just like builtin templates:
 	// - compile, compiles text to tree
 	// - render, evaluates expressions
 	data := g.Comp.Data()
 	renderer := vtree.NewRenderer()
+	renderer.Handler = handler
+
 	ctx := vtree.MakeContext(data)
 
 	// What to do if multi-element (g-for), or nil (g-if)? XXX

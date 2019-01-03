@@ -89,8 +89,9 @@ func (g *Gadget) MainLoop() {
 
 	// not sure if components can be added dynamically. For now
 	// assume they're pre-built
+	// XXX How about removing this loop and diffing against 'nil', resulting in an AddChange?
 	for _, c := range g.Components {
-		tree := c.Render()
+		tree := c.Render(g.BuildCR(c))
 		g.Trees[c] = tree
 		g.Bridge.Add(tree, nil)
 	}
@@ -121,7 +122,7 @@ func (g *Gadget) MainLoop() {
 		// done looping, start updating
 		for c := range workTrees {
 			tree := g.Trees[c]
-			newTree := c.Render()
+			newTree := c.Render(g.BuildCR(c))
 			changes := vtree.Diff(tree, newTree)
 			for _, c := range changes {
 				j.J("Change ->", c)
@@ -131,5 +132,22 @@ func (g *Gadget) MainLoop() {
 			changes.ApplyChanges(g.Bridge)
 		}
 		j.J("Loop!")
+	}
+}
+
+func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
+	return func(e *vtree.Element, context *vtree.Context) {
+		// find the component that 'e' is referring to. Could be defined
+		// on the parent component to which we don't have access right now (can be fixed).
+		//
+		j.J("CR", e, context)
+		childcomps := c.Comp.Components()
+		j.J("ChildC", childcomps)
+		cc, ok := childcomps[e.Type]
+		if ok {
+			ccc := cc()
+			j.J("Yeah! Found it!", cc, ccc)
+			// res := c.Render(g.BuildCR(ccc))
+		}
 	}
 }

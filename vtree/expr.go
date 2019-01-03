@@ -5,7 +5,11 @@ import (
 	"reflect"
 )
 
-type Renderer struct{}
+type ComponentRenderer func(*Element, *Context)
+
+type Renderer struct {
+	Handler ComponentRenderer
+}
 
 func NewRenderer() *Renderer {
 	return &Renderer{}
@@ -143,7 +147,9 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 	// Don't recurse into Children on components. In stead,
 	// call ComponentRenderer
 	if e.IsComponent() {
-		// return CR(e, context)
+		if r.Handler != nil {
+			r.Handler(e, context)
+		}
 	}
 	// XXX make this optional: deep vs. shallow
 	Children := clone.Children
