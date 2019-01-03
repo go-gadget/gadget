@@ -148,12 +148,12 @@ func (g *WrappedComponent) Render() *vtree.Element {
 	// - compile, compiles text to tree
 	// - render, evaluates expressions
 	data := g.Comp.Data()
-
+	renderer := vtree.NewRenderer()
 	ctx := vtree.MakeContext(data)
 
 	// What to do if multi-element (g-for), or nil (g-if)? XXX
 	// always wrap component in <div> ?
-	tree := g.Tree.Render(ctx)[0]
+	tree := renderer.Render(g.Tree, ctx)[0]
 
 	j.J("rendered", tree.ToString())
 

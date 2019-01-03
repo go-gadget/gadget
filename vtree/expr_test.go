@@ -13,10 +13,12 @@ type Storage struct {
 }
 
 func TestValueWithExistingNode(t *testing.T) {
+	renderer := NewRenderer()
+
 	e := El("div").A("g-value", "SomeValue").C(El("div").T("Hello"))
 	ctx := &Context{}
 	ctx.Push("SomeValue", "Test")
-	res := e.Render(ctx)[0]
+	res := renderer.Render(e, ctx)[0]
 
 	if len(res.Children) != 1 {
 		t.Errorf("Expected exactly one child but got %d", len(res.Children))
@@ -24,6 +26,7 @@ func TestValueWithExistingNode(t *testing.T) {
 	AssertTextNode(t, res.Children[0], "Test")
 }
 func TestValueExpression(t *testing.T) {
+	renderer := NewRenderer()
 
 	TestCases := map[string]struct {
 		Value    interface{}
@@ -39,7 +42,7 @@ func TestValueExpression(t *testing.T) {
 		t.Run(Name, func(t *testing.T) {
 			defer ctx.Pop(ctx.Mark())
 			ctx.Push("MyValue", TestCase.Value)
-			res := e.Render(ctx)[0]
+			res := renderer.Render(e, ctx)[0]
 
 			if len(res.Children) != 1 {
 				t.Errorf("Expected element to have exactly one element, got %d", len(res.Children))
@@ -56,9 +59,10 @@ func TestValueExpression(t *testing.T) {
 }
 
 func TestIfFalseExpression(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("g-if", "MyBool").C(El("div").T("child 1"), El("div").T("child 2"))
 
-	res := e.Render(MakeContext(&Storage{MyBool: false}))
+	res := renderer.Render(e, MakeContext(&Storage{MyBool: false}))
 
 	if res != nil {
 		t.Error("Expected node to disappear but it didn't")
@@ -66,9 +70,10 @@ func TestIfFalseExpression(t *testing.T) {
 }
 
 func TestIfTrueExpression(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("g-if", "MyBool").C(El("div").T("child 1"), El("div").T("child 2"))
 
-	res := e.Render(MakeContext(&Storage{MyBool: true}))[0]
+	res := renderer.Render(e, MakeContext(&Storage{MyBool: true}))[0]
 
 	if res == nil {
 		t.Error("Expected to get node back")
@@ -83,9 +88,10 @@ func TestIfTrueExpression(t *testing.T) {
 // <b g-if="foo" g-value="bar">
 
 func TestForExpression(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("g-for", "MyArray").T("Hello World")
 
-	res := e.Render(MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
+	res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
 
 	if res == nil {
 		t.Error("Expected to get node back")
@@ -101,9 +107,10 @@ func TestForExpression(t *testing.T) {
 	}
 }
 func TestEmptyForExpression(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("g-for", "MyArray").T("Hello World")
 
-	res := e.Render(MakeContext(&Storage{MyArray: []int64{}}))
+	res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{}}))
 
 	if res != nil {
 		t.Errorf("Expected no nodes at all, got %d", len(res))
@@ -111,9 +118,10 @@ func TestEmptyForExpression(t *testing.T) {
 }
 
 func TestForLoopElementID(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("g-for", "MyArray").A("g-value", "_")
 
-	res := e.Render(MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
+	res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
 
 	// Currently generate id's based on original + index
 	for i, el := range res {
@@ -124,13 +132,14 @@ func TestForLoopElementID(t *testing.T) {
 	}
 }
 func TestForExpressionWithContext(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("g-for", "MyArray").C(El("div").A("g-value", "_"))
 
 	// Does not work with intarray because of g-value
 	ctx := &Context{}
 	ctx.Push("MyArray", []string{"1", "2", "3", "4"})
-	// res := e.Render(MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
-	res := e.Render(ctx)
+	// res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
+	res := renderer.Render(e, ctx)
 
 	if res == nil {
 		t.Error("Expected to get node back")
@@ -145,10 +154,11 @@ func TestForExpressionWithContext(t *testing.T) {
 }
 
 func TestForValue(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("g-for", "MyArray").A("g-value", "_").T("x")
 	ctx := &Context{}
 	ctx.Push("MyArray", []string{"a", "bc", "c"})
-	res := e.Render(ctx)
+	res := renderer.Render(e, ctx)
 
 	if res == nil {
 		t.Error("Expected to get node back")
@@ -165,10 +175,11 @@ func TestForValue(t *testing.T) {
 }
 
 func TestClass(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("class", "some classes set").A("g-class", "MyClasses")
 	ctx := &Context{}
 	ctx.Push("MyClasses", "extra more")
-	res := e.Render(ctx)
+	res := renderer.Render(e, ctx)
 
 	if res == nil || len(res) != 1 {
 		t.Error("Expected to get exactly one node back")
@@ -180,10 +191,11 @@ func TestClass(t *testing.T) {
 }
 
 func TestClassNoneSet(t *testing.T) {
+	renderer := NewRenderer()
 	e := El("div").A("g-class", "MyClasses")
 	ctx := &Context{}
 	ctx.Push("MyClasses", "extra more")
-	res := e.Render(ctx)
+	res := renderer.Render(e, ctx)
 
 	if res == nil || len(res) != 1 {
 		t.Error("Expected to get exactly one node back")
@@ -197,8 +209,10 @@ func TestClassNoneSet(t *testing.T) {
 
 func TestIfValueClass(t *testing.T) {
 	// if, value, class are all executed
+	renderer := NewRenderer()
 	e := El("div").A("g-class", "MyClass").A("g-if", "MyIf").A("g-value", "MyValue")
-	res := e.Render(
+	res := renderer.Render(
+		e,
 		MakeContext(
 			&struct {
 				MyClass string
@@ -219,13 +233,14 @@ func TestIfValueClass(t *testing.T) {
 }
 
 func TestDeepNested(t *testing.T) {
+	renderer := NewRenderer()
 	tpl := `<div g-class="A"><ul g-if="B"><li g-for="C" g-value="_">x</li></ul></div>`
 	tree := Parse(tpl)
 	ctx := &Context{}
 	ctx.Push("A", "test")
 	ctx.Push("B", true)
 	ctx.Push("C", []int{1})
-	rendered := tree.Render(ctx)
+	rendered := renderer.Render(tree, ctx)
 
 	firstLi := rendered[0].Children[0].(*Element).Children[0].(*Element)
 	tNode := firstLi.Children[0]
@@ -236,6 +251,7 @@ func TestDeepNested(t *testing.T) {
 }
 
 func TestDeepNestedChange(t *testing.T) {
+	renderer := NewRenderer()
 	tpl := `<div><div g-class="A"><ul g-if="B"><li g-for="C" g-value="_">x</li></ul></div></div>`
 	tree := Parse(tpl)
 	ctx := &Context{}
@@ -244,15 +260,26 @@ func TestDeepNestedChange(t *testing.T) {
 	ctx.Push("C", []int{1})
 
 	// first render
-	firstPass := tree.Render(ctx)
+	firstPass := renderer.Render(tree, ctx)
 
 	ctx.Push("C", []int{1, 2})
-	secondPass := tree.Render(ctx)
+	secondPass := renderer.Render(tree, ctx)
 
 	changes := Diff(firstPass[0], secondPass[0])
 
 	if len(changes) == 0 {
 		t.Error("Expected at least one change")
 	}
-
 }
+
+// func TestComponentRender(t *testing.T) {
+// 	tpl := `<div><my-component></my-component></div>`
+// 	tree := Parse(tpl)
+// 	ctx := &Context{}
+// 	fp := tree.Render(ctx)
+
+// 	j.J("RES", fp)
+// 	if fp != nil {
+// 		t.Errorf("lal")
+// 	}
+// }

@@ -3,6 +3,7 @@ package vtree
 import (
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 /*
@@ -70,6 +71,10 @@ type Element struct {
 	Children   NodeList
 	Handlers   map[string]callable
 	Setter     func(string)
+}
+
+func (e *Element) IsComponent() bool {
+	return strings.Contains(e.Type, "-") && !strings.HasPrefix(e.Type, "g-")
 }
 
 // A Text node contains the text within an Element node. It doesn't have much special properties

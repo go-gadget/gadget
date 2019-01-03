@@ -5,8 +5,14 @@ import (
 	"reflect"
 )
 
+type Renderer struct{}
+
+func NewRenderer() *Renderer {
+	return &Renderer{}
+}
+
 // RenderValue replaces g-value="expr" with the value from the context
-func (e *Element) RenderValue(name string, context *Context) {
+func (r *Renderer) RenderValue(e *Element, name string, context *Context) {
 	delete(e.Attributes, "g-value")
 
 	value := context.Get(name) // XXX check NotFound
@@ -22,7 +28,7 @@ func (e *Element) RenderValue(name string, context *Context) {
 }
 
 // RenderIf returns the node with children if the g-if expression evaluates to true
-func (e *Element) RenderIf(name string, context *Context) bool {
+func (r *Renderer) RenderIf(e *Element, name string, context *Context) bool {
 	value := context.Get(name) // XXX check NotFound
 
 	if !value.Bool() {
@@ -33,7 +39,7 @@ func (e *Element) RenderIf(name string, context *Context) bool {
 }
 
 // RenderFor handles g-for, duplicating the node for each iteration
-func (e *Element) RenderFor(name string, context *Context) (result []*Element) {
+func (r *Renderer) RenderFor(e *Element, name string, context *Context) (result []*Element) {
 	/*
 	 * The tag containing the g-for will be duplicated,
 	 * so effectively this can return nil, one or multiple
@@ -54,7 +60,7 @@ func (e *Element) RenderFor(name string, context *Context) (result []*Element) {
 		clone.ID = ElementID(fmt.Sprintf("%s-%d", clone.ID, i))
 		delete(clone.Attributes, "g-for")
 
-		res := clone.Render(context)
+		res := r.Render(clone, context)
 		result = append(result, res...)
 
 		context.Pop(m)
@@ -82,7 +88,7 @@ func (e *Element) RenderFor(name string, context *Context) (result []*Element) {
  *
  * For now, only 1. is supported
  */
-func (e *Element) RenderClass(classes string, context *Context) {
+func (r *Renderer) RenderClass(e *Element, classes string, context *Context) {
 	// are attributes clones?
 	delete(e.Attributes, "g-class")
 
@@ -100,7 +106,7 @@ func (e *Element) RenderClass(classes string, context *Context) {
 
 // Render the tree with root `e`, adding, cloning, removing nodes and handled
 // g-<expressions> where necessary, leaving the original tree in tact.
-func (e *Element) Render(context *Context) []*Element {
+func (r *Renderer) Render(e *Element, context *Context) []*Element {
 	// render tree 'e' into a new tree, evaluating expressions,
 	// with given context
 
@@ -113,41 +119,46 @@ func (e *Element) Render(context *Context) []*Element {
 	if gValue, ok := e.Attributes["g-for"]; ok {
 		// g-for will recurse on itself for each itertion, which will
 		// deal with g-value, g-if, g-class, etc.
-		return e.RenderFor(gValue, context)
+		return r.RenderFor(e, gValue, context)
 	}
 
-	r := e.Clone().(*Element)
+	clone := e.Clone().(*Element)
 
 	if gValue, ok := e.Attributes["g-if"]; ok {
-		if !r.RenderIf(gValue, context) {
+		if !r.RenderIf(clone, gValue, context) {
 			return nil
 		}
 	}
 
-	if gValue, ok := r.Attributes["g-class"]; ok {
-		r.RenderClass(gValue, context)
+	if gValue, ok := clone.Attributes["g-class"]; ok {
+		r.RenderClass(clone, gValue, context)
 	}
 
-	if gValue, ok := r.Attributes["g-value"]; ok {
+	if gValue, ok := clone.Attributes["g-value"]; ok {
 		// a g-value replaces all children, so don't don't recurse
-		r.RenderValue(gValue, context)
-		return []*Element{r}
+		r.RenderValue(clone, gValue, context)
+		return []*Element{clone}
 	}
 
+	// Don't recurse into Children on components. In stead,
+	// call ComponentRenderer
+	if e.IsComponent() {
+		// return CR(e, context)
+	}
 	// XXX make this optional: deep vs. shallow
-	Children := r.Children
-	r.Children = nil
+	Children := clone.Children
+	clone.Children = nil
 
 	for _, c := range Children {
 		if el, ok := c.(*Element); ok {
-			for _, cc := range el.Render(context) {
+			for _, cc := range r.Render(el, context) {
 				if cc != nil {
-					r.C(cc)
+					clone.C(cc)
 				}
 			}
 		} else {
-			r.C(c)
+			clone.C(c)
 		}
 	}
-	return []*Element{r}
+	return []*Element{clone}
 }

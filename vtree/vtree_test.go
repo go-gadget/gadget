@@ -24,3 +24,20 @@ func TestMultiChildren(t *testing.T) {
 		t.Errorf("Expected 2 children, got %d in stead", len(tree.Children))
 	}
 }
+
+func TestIsComponentComponentElement(t *testing.T) {
+	if !El("my-component").IsComponent() {
+		t.Error("Expected IsComponent to be true on 'my-component'")
+	}
+}
+func TestIsComponentGElement(t *testing.T) {
+	if El("g-my-component").IsComponent() {
+		t.Error("Expected IsComponent not to be true on 'g-my-component'")
+	}
+}
+
+func TestIsComponentElement(t *testing.T) {
+	if El("div").IsComponent() {
+		t.Error("Expected IsComponent not to be true on 'div'")
+	}
+}

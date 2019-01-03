@@ -59,11 +59,11 @@ func TestSplitTextParse(t *testing.T) {
 	AssertTextNode(t, eNode.Children[0], "GO")
 }
 
-func TestComponent(t *testing.T) {
-	el := Parse("<div><my-component></my-component></div>")
-	if len(el.Children) != 1 {
-		t.Errorf("Expected 1 child, got %d", len(el.Children))
-	}
+// func TestComponent(t *testing.T) {
+// 	el := Parse("<div><my-component></my-component></div>")
+// 	if len(el.Children) != 1 {
+// 		t.Errorf("Expected 1 child, got %d", len(el.Children))
+// 	}
 
-	AssertComponentNode(t, el.Children[0], "my-component")
-}
+// 	AssertComponentNode(t, el.Children[0], "my-component")
+// }
