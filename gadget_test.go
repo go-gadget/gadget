@@ -11,10 +11,12 @@ type DummyComponent struct{}
 func (d *DummyComponent) Init() {
 }
 
-func (d *DummyComponent) Data() interface{} { return nil }
+func (d *DummyComponent) Data() interface{} {
+	return d
+}
 
 func (d *DummyComponent) Template() string {
-	return ""
+	return "<div></div>"
 }
 
 func (d *DummyComponent) Handlers() map[string]Handler {
@@ -35,5 +37,5 @@ func TestGadgetComponent(t *testing.T) {
 	g := NewGadget(vtree.Builder())
 	component := g.BuildComponent(DummyComponentFactory)
 	g.Mount(component)
-
+	g.RenderComponents()
 }

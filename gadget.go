@@ -16,6 +16,8 @@ type Gadget struct {
 	Components []*WrappedComponent
 	Trees      map[*WrappedComponent]*vtree.Element
 	Bridge     vtree.Subject
+	Queue      []Action
+	Wakeup     chan bool
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
@@ -23,6 +25,7 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 		Chan:   make(chan Action),
 		Trees:  make(map[*WrappedComponent]*vtree.Element),
 		Bridge: bridge,
+		Wakeup: make(chan bool),
 	}
 }
 
@@ -70,12 +73,12 @@ func (g *Gadget) RenderComponents() {
 
 func (g *Gadget) SingleLoop() {
 	workTrees := make(map[*WrappedComponent]*vtree.Element)
-	j.J("There's work!", len(queue), queue[0])
+	j.J("There's work!", len(g.Queue), g.Queue[0])
 
-	for len(queue) > 0 {
+	for len(g.Queue) > 0 {
 
-		work := queue[0]
-		queue = queue[1:]
+		work := g.Queue[0]
+		g.Queue = g.Queue[1:]
 
 		c := work.Component()
 
@@ -116,20 +119,17 @@ func (g *Gadget) MainLoop() {
 	 * - IO ?
 	 */
 
-	var queue []Action
-	wakeup := make(chan bool)
-
 	go func() {
 
 		for {
 			msg := <-g.Chan
 
-			size := len(queue)
+			size := len(g.Queue)
 			// lock?
-			queue = append(queue, msg)
+			g.Queue = append(g.Queue, msg)
 
 			if size == 0 {
-				wakeup <- true
+				g.Wakeup <- true
 			}
 		}
 	}()
@@ -138,7 +138,7 @@ func (g *Gadget) MainLoop() {
 
 	for {
 		j.J("Sleeping until there's some work")
-		<-wakeup
+		<-g.Wakeup
 		g.SingleLoop()
 		j.J("Loop!")
 	}
