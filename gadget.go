@@ -56,6 +56,53 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
+func (g *Gadget) RenderComponents() {
+	// first render of components
+	// Build the first tree. There's nothing to diff against, so force
+	// an Add change on the entire tree
+	for _, c := range g.Components {
+		tree := c.Render(g.BuildCR(c))
+		g.Trees[c] = tree
+		g.Bridge.Add(tree, nil)
+	}
+
+}
+
+func (g *Gadget) SingleLoop() {
+	workTrees := make(map[*WrappedComponent]*vtree.Element)
+	j.J("There's work!", len(queue), queue[0])
+
+	for len(queue) > 0 {
+
+		work := queue[0]
+		queue = queue[1:]
+
+		c := work.Component()
+
+		if _, ok := workTrees[c]; !ok {
+			tree := g.Trees[c]
+			workTrees[c] = tree
+
+			// Get data before doing work
+			g.SyncState(tree)
+		}
+
+		work.Run()
+	}
+	// done looping, start updating
+	for c := range workTrees {
+		tree := g.Trees[c]
+		newTree := c.Render(g.BuildCR(c))
+		changes := vtree.Diff(tree, newTree)
+		for _, c := range changes {
+			j.J("Change ->", c)
+		}
+		j.J("That's a lot of changes:", len(changes))
+		g.Trees[c] = newTree
+		changes.ApplyChanges(g.Bridge)
+	}
+
+}
 func (g *Gadget) MainLoop() {
 	// Right now an update is triggered by sending something to the Chan channel.
 	// If we'd do this on every SetValue, we'd get a lot of updates.
@@ -87,50 +134,12 @@ func (g *Gadget) MainLoop() {
 		}
 	}()
 
-	// not sure if components can be added dynamically. For now
-	// assume they're pre-built
-	// XXX How about removing this loop and diffing against 'nil', resulting in an AddChange?
-	for _, c := range g.Components {
-		tree := c.Render(g.BuildCR(c))
-		g.Trees[c] = tree
-		g.Bridge.Add(tree, nil)
-	}
+	g.RenderComponents()
 
 	for {
-		workTrees := make(map[*WrappedComponent]*vtree.Element)
 		j.J("Sleeping until there's some work")
 		<-wakeup
-		j.J("There's work!", len(queue), queue[0])
-
-		for len(queue) > 0 {
-
-			work := queue[0]
-			queue = queue[1:]
-
-			c := work.Component()
-
-			if _, ok := workTrees[c]; !ok {
-				tree := g.Trees[c]
-				workTrees[c] = tree
-
-				// Get data before doing work
-				g.SyncState(tree)
-			}
-
-			work.Run()
-		}
-		// done looping, start updating
-		for c := range workTrees {
-			tree := g.Trees[c]
-			newTree := c.Render(g.BuildCR(c))
-			changes := vtree.Diff(tree, newTree)
-			for _, c := range changes {
-				j.J("Change ->", c)
-			}
-			j.J("That's a lot of changes:", len(changes))
-			g.Trees[c] = newTree
-			changes.ApplyChanges(g.Bridge)
-		}
+		g.SingleLoop()
 		j.J("Loop!")
 	}
 }

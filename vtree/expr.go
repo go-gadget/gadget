@@ -148,6 +148,9 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 	// call ComponentRenderer
 	if e.IsComponent() {
 		if r.Handler != nil {
+			// Handler can decide if re-execution is actually necessary.
+			// Alternatively, store copy of context on element, do
+			// separate execute
 			r.Handler(e, context)
 		}
 	}

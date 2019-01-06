@@ -144,6 +144,8 @@ func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 		}
 	}
 }
+
+// XXX Rename to execute?
 func (g *WrappedComponent) Render(handler vtree.ComponentRenderer) *vtree.Element {
 	// This is actually a 2-step proces, just like builtin templates:
 	// - compile, compiles text to tree
