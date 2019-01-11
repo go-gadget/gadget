@@ -13,17 +13,20 @@ type Action interface {
 
 type Gadget struct {
 	Chan       chan Action
-	Components []*WrappedComponent
-	Trees      map[*WrappedComponent]*vtree.Element
+	Components []*Mount
 	Bridge     vtree.Subject
 	Queue      []Action
 	Wakeup     chan bool
 }
 
+type Mount struct {
+	Component *WrappedComponent
+	Point     *vtree.Element
+}
+
 func NewGadget(bridge vtree.Subject) *Gadget {
 	return &Gadget{
 		Chan:   make(chan Action),
-		Trees:  make(map[*WrappedComponent]*vtree.Element),
 		Bridge: bridge,
 		Wakeup: make(chan bool),
 	}
@@ -34,14 +37,16 @@ type Builder func() Component
 func (g *Gadget) BuildComponent(b Builder) *WrappedComponent {
 	comp := &WrappedComponent{Comp: b(), Update: nil}
 	comp.Comp.Init()
-	comp.Tree = vtree.Parse(comp.Comp.Template())
+	comp.UnexecutedTree = vtree.Parse(comp.Comp.Template())
 	return comp
 }
 
-func (g *Gadget) Mount(c *WrappedComponent) {
+func (g *Gadget) Mount(c *WrappedComponent, point *vtree.Element) {
 	// Not sure if this really is mounting
 	// probably needs lock
-	g.Components = append(g.Components, c)
+
+	// store node where mounted (or nil)
+	g.Components = append(g.Components, &Mount{c, point})
 	c.Update = g.Chan
 	// c.Mounted() hook?
 }
@@ -59,23 +64,11 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
-func (g *Gadget) RenderComponents() {
-	// first render of components
-	// Build the first tree. There's nothing to diff against, so force
-	// an Add change on the entire tree
-	for _, c := range g.Components {
-		tree := c.Render(g.BuildCR(c))
-		g.Trees[c] = tree
-		g.Bridge.Add(tree, nil)
-	}
-
-}
-
 func (g *Gadget) SingleLoop() {
 	workTrees := make(map[*WrappedComponent]*vtree.Element)
-	j.J("There's work!", len(g.Queue), g.Queue[0])
 
 	for len(g.Queue) > 0 {
+		j.J("There's work!", len(g.Queue), g.Queue[0])
 
 		work := g.Queue[0]
 		g.Queue = g.Queue[1:]
@@ -83,7 +76,7 @@ func (g *Gadget) SingleLoop() {
 		c := work.Component()
 
 		if _, ok := workTrees[c]; !ok {
-			tree := g.Trees[c]
+			tree := c.ExecutedTree
 			workTrees[c] = tree
 
 			// Get data before doing work
@@ -92,17 +85,27 @@ func (g *Gadget) SingleLoop() {
 
 		work.Run()
 	}
-	// done looping, start updating
-	for c := range workTrees {
-		tree := g.Trees[c]
-		newTree := c.Render(g.BuildCR(c))
-		changes := vtree.Diff(tree, newTree)
-		for _, c := range changes {
-			j.J("Change ->", c)
+
+	// g.Components may grow because of subcomponents
+
+	for i := 0; i < 5; i++ { // This is a hack
+
+		for _, m := range g.Components {
+			c := m.Component
+			p := m.Point
+			j.J("Looping", c)
+			changes := c.BuildDiff(g.BuildCR(c))
+
+			if p != nil {
+				for _, ch := range changes {
+					if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
+						ach.Parent = p
+					}
+				}
+
+			}
+			changes.ApplyChanges(g.Bridge)
 		}
-		j.J("That's a lot of changes:", len(changes))
-		g.Trees[c] = newTree
-		changes.ApplyChanges(g.Bridge)
 	}
 
 }
@@ -134,8 +137,7 @@ func (g *Gadget) MainLoop() {
 		}
 	}()
 
-	g.RenderComponents()
-
+	g.SingleLoop()
 	for {
 		j.J("Sleeping until there's some work")
 		<-g.Wakeup
@@ -154,9 +156,16 @@ func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 		j.J("ChildC", childcomps)
 		cc, ok := childcomps[e.Type]
 		if ok {
-			ccc := cc()
-			j.J("Yeah! Found it!", cc, ccc)
-			// res := c.Render(g.BuildCR(ccc))
+			// cc is a ComponentBuilder, resulting in a Copmonent, not a WrappedComponent
+			wc := g.BuildComponent(cc)
+			// e, or e's parent?
+			g.Mount(wc, e)
+			j.J("Yeah! Found it!", cc, wc)
+			res := c.Execute(g.BuildCR(wc))
+			j.J(res)
+
+			// check diffs.
+			// where do we "keep" wc? And wc may already have been created.
 		}
 	}
 }

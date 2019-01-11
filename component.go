@@ -70,9 +70,10 @@ func (a *UserAction) Run() {
 }
 
 type WrappedComponent struct {
-	Comp   Component
-	Tree   *vtree.Element
-	Update chan Action
+	Comp           Component
+	UnexecutedTree *vtree.Element
+	ExecutedTree   *vtree.Element
+	Update         chan Action
 }
 
 func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
@@ -145,8 +146,7 @@ func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 	}
 }
 
-// XXX Rename to execute?
-func (g *WrappedComponent) Render(handler vtree.ComponentRenderer) *vtree.Element {
+func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer) *vtree.Element {
 	// This is actually a 2-step proces, just like builtin templates:
 	// - compile, compiles text to tree
 	// - render, evaluates expressions
@@ -158,7 +158,7 @@ func (g *WrappedComponent) Render(handler vtree.ComponentRenderer) *vtree.Elemen
 
 	// What to do if multi-element (g-for), or nil (g-if)? XXX
 	// always wrap component in <div> ?
-	tree := renderer.Render(g.Tree, ctx)[0]
+	tree := renderer.Render(g.UnexecutedTree, ctx)[0]
 
 	j.J("rendered", tree.ToString())
 
@@ -171,6 +171,18 @@ func (g *WrappedComponent) Render(handler vtree.ComponentRenderer) *vtree.Elemen
 	g.bindSpecials(tree)
 
 	return tree
+}
+
+func (g *WrappedComponent) BuildDiff(handler vtree.ComponentRenderer) (res vtree.ChangeSet) {
+	tree := g.Execute(handler)
+
+	if g.ExecutedTree == nil {
+		res = vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
+	} else {
+		res = vtree.Diff(g.ExecutedTree, tree)
+	}
+	g.ExecutedTree = tree
+	return res
 }
 
 func (g *WrappedComponent) HandleEvent(event string) {
