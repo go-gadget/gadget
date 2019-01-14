@@ -13,7 +13,7 @@ type Action interface {
 
 type Gadget struct {
 	Chan       chan Action
-	Components []*Mount
+	Components []*Mount // <- Mounts ?
 	Bridge     vtree.Subject
 	Queue      []Action
 	Wakeup     chan bool
@@ -163,17 +163,21 @@ func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 		childcomps := c.Comp.Components()
 		j.J("ChildC", childcomps)
 		cc, ok := childcomps[e.Type]
+
+		// This can be optimized using a map. But since maps are not ordered,
+		// we can't combine with g.Components
+		for _, c := range g.Components {
+			if c.Point.ID == e.ID {
+				j.J("Already got this one!")
+				return
+			}
+		}
 		if ok {
 			// cc is a ComponentBuilder, resulting in a Copmonent, not a WrappedComponent
 			wc := g.BuildComponent(cc)
 			// e, or e's parent?
 			g.Mount(wc, e)
 			j.J("Yeah! Found it!", cc, wc)
-			res := c.Execute(g.BuildCR(wc))
-			j.J(res)
-
-			// check diffs.
-			// where do we "keep" wc? And wc may already have been created.
 		}
 	}
 }
