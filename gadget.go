@@ -19,6 +19,8 @@ type Gadget struct {
 	Wakeup     chan bool
 }
 
+// Is a WrappedComponent actually a Mounted component?
+// Is a Component actually (interface) Mountable?
 type Mount struct {
 	Component *WrappedComponent
 	Point     *vtree.Element
@@ -88,25 +90,31 @@ func (g *Gadget) SingleLoop() {
 
 	// g.Components may grow because of subcomponents
 
-	for i := 0; i < 5; i++ { // This is a hack
+	var handled []*Mount
 
-		for _, m := range g.Components {
-			c := m.Component
-			p := m.Point
-			j.J("Looping", c)
-			changes := c.BuildDiff(g.BuildCR(c))
+	for len(g.Components) > 0 {
+		m := g.Components[0]
+		handled = append(handled, m)
 
-			if p != nil {
-				for _, ch := range changes {
-					if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
-						ach.Parent = p
-					}
+		g.Components = g.Components[1:]
+
+		c := m.Component
+		p := m.Point
+		j.J("Looping", c)
+		changes := c.BuildDiff(g.BuildCR(c))
+
+		if p != nil {
+			for _, ch := range changes {
+				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
+					ach.Parent = p
 				}
-
 			}
-			changes.ApplyChanges(g.Bridge)
+
 		}
+		changes.ApplyChanges(g.Bridge)
 	}
+
+	g.Components = handled
 
 }
 func (g *Gadget) MainLoop() {

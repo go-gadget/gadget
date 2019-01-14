@@ -3,6 +3,7 @@ package gadget
 import (
 	"testing"
 
+	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
 
@@ -57,7 +58,7 @@ func TestGadgetComponent(t *testing.T) {
 	}
 }
 
-func TestNestedComponent(t *testing.T) {
+func TestNestedComponents(t *testing.T) {
 	g := NewGadget(vtree.Builder())
 	ChildBuilder := MakeDummyFactory(
 		"<b>I am the child</b>",
@@ -68,17 +69,48 @@ func TestNestedComponent(t *testing.T) {
 		map[string]Builder{"test-child": ChildBuilder},
 	))
 	g.Mount(component, nil)
-	g.SingleLoop()
 
-	if len(g.Components) != 2 {
-		t.Errorf("Expected 2 mounted component, found %d", len(g.Components))
-	}
+	t.Run("Test single loop", func(t *testing.T) {
+		g.SingleLoop()
 
-	c := g.Components[0].Component
+		if len(g.Components) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Components))
+			j.J(g.Components)
+		}
 
-	rendered := c.ExecutedTree.ToString()
+		// Can we assume this order?
+		rendered := g.Components[0].Component.ExecutedTree.ToString()
 
-	if rendered != "<div><p>Hi</p></div>" {
-		t.Errorf("Did not get expected rendered tree, got %s", rendered)
-	}
+		if rendered != "<div><test-child></test-child></div>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+		rendered = g.Components[1].Component.ExecutedTree.ToString()
+
+		if rendered != "<b>I am the child</b>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+	})
+	t.Run("Test double loop", func(t *testing.T) {
+		// actually, g will already have accumulated an extra loop, so this will be tripple loop
+		g.SingleLoop()
+		g.SingleLoop()
+
+		if len(g.Components) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Components))
+			j.J(g.Components)
+		}
+
+		// Can we assume this order?
+		rendered := g.Components[0].Component.ExecutedTree.ToString()
+
+		if rendered != "<div><test-child></test-child></div>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+		rendered = g.Components[1].Component.ExecutedTree.ToString()
+
+		if rendered != "<b>I am the child</b>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+
+	})
 }
