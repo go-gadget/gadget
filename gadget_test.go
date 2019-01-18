@@ -111,6 +111,5 @@ func TestNestedComponents(t *testing.T) {
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-
 	})
 }

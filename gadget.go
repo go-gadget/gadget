@@ -154,6 +154,7 @@ func (g *Gadget) MainLoop() {
 	}
 }
 
+// BuildCR is the callback called when executing on components.
 func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 	return func(e *vtree.Element, context *vtree.Context) {
 		// find the component that 'e' is referring to. Could be defined
