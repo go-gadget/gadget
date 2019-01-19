@@ -12,11 +12,11 @@ type Action interface {
 }
 
 type Gadget struct {
-	Chan       chan Action
-	Components []*Mount // <- Mounts ?
-	Bridge     vtree.Subject
-	Queue      []Action
-	Wakeup     chan bool
+	Chan   chan Action
+	Mounts []*Mount // <- Mounts ?
+	Bridge vtree.Subject
+	Queue  []Action
+	Wakeup chan bool
 }
 
 // Is a WrappedComponent actually a Mounted component?
@@ -48,7 +48,7 @@ func (g *Gadget) Mount(c *WrappedComponent, point *vtree.Element) {
 	// probably needs lock
 
 	// store node where mounted (or nil)
-	g.Components = append(g.Components, &Mount{c, point})
+	g.Mounts = append(g.Mounts, &Mount{c, point})
 	c.Update = g.Chan
 	// c.Mounted() hook?
 }
@@ -88,15 +88,13 @@ func (g *Gadget) SingleLoop() {
 		work.Run()
 	}
 
-	// g.Components may grow because of subcomponents
-
 	var handled []*Mount
 
-	for len(g.Components) > 0 {
-		m := g.Components[0]
+	for len(g.Mounts) > 0 {
+		m := g.Mounts[0]
 		handled = append(handled, m)
 
-		g.Components = g.Components[1:]
+		g.Mounts = g.Mounts[1:]
 
 		c := m.Component
 		p := m.Point
@@ -106,13 +104,13 @@ func (g *Gadget) SingleLoop() {
 		for _, ch := range changes {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
-					for _, c := range g.Components {
-						var newComponents []*Mount
+					for _, c := range g.Mounts {
+						var newMounts []*Mount
 						if c.Point.ID != el.ID {
 							j.J("del", c.Point.ID, el.ID)
-							newComponents = append(newComponents, c)
+							newMounts = append(newMounts, c)
 						}
-						g.Components = newComponents
+						g.Mounts = newMounts
 					}
 				}
 			}
@@ -127,7 +125,7 @@ func (g *Gadget) SingleLoop() {
 		changes.ApplyChanges(g.Bridge)
 	}
 
-	g.Components = handled
+	g.Mounts = handled
 
 }
 func (g *Gadget) MainLoop() {
@@ -178,7 +176,7 @@ func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 
 		// This can be optimized using a map. But since maps are not ordered,
 		// we can't combine with g.Components
-		for _, c := range g.Components {
+		for _, c := range g.Mounts {
 			if c.Point.ID == e.ID {
 				j.J("Already got this one!")
 				return

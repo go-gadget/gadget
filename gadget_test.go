@@ -46,11 +46,11 @@ func TestGadgetComponent(t *testing.T) {
 	g.Mount(component, nil)
 	g.SingleLoop()
 
-	if len(g.Components) != 1 {
-		t.Errorf("Expected 1 mounted component, found %d", len(g.Components))
+	if len(g.Mounts) != 1 {
+		t.Errorf("Expected 1 mounted component, found %d", len(g.Mounts))
 	}
 
-	c := g.Components[0].Component
+	c := g.Mounts[0].Component
 
 	rendered := c.ExecutedTree.ToString()
 
@@ -74,18 +74,18 @@ func TestNestedComponents(t *testing.T) {
 	t.Run("Test single loop", func(t *testing.T) {
 		g.SingleLoop()
 
-		if len(g.Components) != 2 {
-			t.Errorf("Expected 2 mounted component, found %d", len(g.Components))
-			j.J(g.Components)
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
+			j.J(g.Mounts)
 		}
 
 		// Can we assume this order?
-		rendered := g.Components[0].Component.ExecutedTree.ToString()
+		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-		rendered = g.Components[1].Component.ExecutedTree.ToString()
+		rendered = g.Mounts[1].Component.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -96,17 +96,17 @@ func TestNestedComponents(t *testing.T) {
 		g.SingleLoop()
 		g.SingleLoop()
 
-		if len(g.Components) != 2 {
-			t.Errorf("Expected 2 mounted component, found %d", len(g.Components))
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
 		}
 
 		// Can we assume this order?
-		rendered := g.Components[0].Component.ExecutedTree.ToString()
+		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-		rendered = g.Components[1].Component.ExecutedTree.ToString()
+		rendered = g.Mounts[1].Component.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -130,11 +130,11 @@ func TestConditionalComponent(t *testing.T) {
 		component.RawSetValue("BoolVal", false)
 		g.SingleLoop()
 
-		if len(g.Components) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.Components))
+		if len(g.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.Mounts))
 		}
 
-		rendered := g.Components[0].Component.ExecutedTree.ToString()
+		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -144,17 +144,17 @@ func TestConditionalComponent(t *testing.T) {
 		component.RawSetValue("BoolVal", true)
 		g.SingleLoop()
 
-		if len(g.Components) != 2 {
-			t.Errorf("Expected 2 mounted component, found %d", len(g.Components))
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
 		}
 
 		// Can we assume this order?
-		rendered := g.Components[0].Component.ExecutedTree.ToString()
+		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-		rendered = g.Components[1].Component.ExecutedTree.ToString()
+		rendered = g.Mounts[1].Component.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -166,12 +166,12 @@ func TestConditionalComponent(t *testing.T) {
 		component.RawSetValue("BoolVal", false)
 		g.SingleLoop()
 
-		if len(g.Components) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.Components))
+		if len(g.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.Mounts))
 		}
 
 		// Can we assume this order?
-		rendered := g.Components[0].Component.ExecutedTree.ToString()
+		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -183,17 +183,17 @@ func TestConditionalComponent(t *testing.T) {
 		component.RawSetValue("BoolVal", true)
 		g.SingleLoop()
 
-		if len(g.Components) != 2 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.Components))
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.Mounts))
 		}
 
 		// Can we assume this order?
-		rendered := g.Components[0].Component.ExecutedTree.ToString()
+		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-		rendered = g.Components[1].Component.ExecutedTree.ToString()
+		rendered = g.Mounts[1].Component.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
