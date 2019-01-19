@@ -10,6 +10,7 @@ import (
 type DummyComponent struct {
 	DummyTemplate   string
 	DummyComponents map[string]Builder
+	BoolVal         bool
 }
 
 func (d *DummyComponent) Init() {
@@ -97,7 +98,93 @@ func TestNestedComponents(t *testing.T) {
 
 		if len(g.Components) != 2 {
 			t.Errorf("Expected 2 mounted component, found %d", len(g.Components))
-			j.J(g.Components)
+		}
+
+		// Can we assume this order?
+		rendered := g.Components[0].Component.ExecutedTree.ToString()
+
+		if rendered != "<div><test-child></test-child></div>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+		rendered = g.Components[1].Component.ExecutedTree.ToString()
+
+		if rendered != "<b>I am the child</b>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+	})
+}
+
+func TestConditionalComponent(t *testing.T) {
+	g := NewGadget(vtree.Builder())
+	ChildBuilder := MakeDummyFactory(
+		"<b>I am the child</b>",
+		nil,
+	)
+	component := g.BuildComponent(MakeDummyFactory(
+		`<div><test-child g-if="BoolVal"></test-child></div>`,
+		map[string]Builder{"test-child": ChildBuilder},
+	))
+	g.Mount(component, nil)
+
+	t.Run("Test removed", func(t *testing.T) {
+		component.RawSetValue("BoolVal", false)
+		g.SingleLoop()
+
+		if len(g.Components) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.Components))
+		}
+
+		rendered := g.Components[0].Component.ExecutedTree.ToString()
+
+		if rendered != "<div></div>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+	})
+	t.Run("Test present", func(t *testing.T) {
+		component.RawSetValue("BoolVal", true)
+		g.SingleLoop()
+
+		if len(g.Components) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Components))
+		}
+
+		// Can we assume this order?
+		rendered := g.Components[0].Component.ExecutedTree.ToString()
+
+		if rendered != "<div><test-child></test-child></div>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+		rendered = g.Components[1].Component.ExecutedTree.ToString()
+
+		if rendered != "<b>I am the child</b>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+	})
+	t.Run("Test toggle true -> false", func(t *testing.T) {
+		component.RawSetValue("BoolVal", true)
+		g.SingleLoop()
+		component.RawSetValue("BoolVal", false)
+		g.SingleLoop()
+
+		if len(g.Components) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.Components))
+		}
+
+		// Can we assume this order?
+		rendered := g.Components[0].Component.ExecutedTree.ToString()
+
+		if rendered != "<div></div>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+	})
+	t.Run("Test toggle false -> true", func(t *testing.T) {
+		component.RawSetValue("BoolVal", false)
+		g.SingleLoop()
+		component.RawSetValue("BoolVal", true)
+		g.SingleLoop()
+
+		if len(g.Components) != 2 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.Components))
 		}
 
 		// Can we assume this order?

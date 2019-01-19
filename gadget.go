@@ -100,16 +100,29 @@ func (g *Gadget) SingleLoop() {
 
 		c := m.Component
 		p := m.Point
-		j.J("Looping", c)
 		changes := c.BuildDiff(g.BuildCR(c))
 
+		// See if components were removed. If so, remove them from mounts
+		for _, ch := range changes {
+			if dch, ok := ch.(*vtree.DeleteChange); ok {
+				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
+					for _, c := range g.Components {
+						var newComponents []*Mount
+						if c.Point.ID != el.ID {
+							j.J("del", c.Point.ID, el.ID)
+							newComponents = append(newComponents, c)
+						}
+						g.Components = newComponents
+					}
+				}
+			}
+		}
 		if p != nil {
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
 					ach.Parent = p
 				}
 			}
-
 		}
 		changes.ApplyChanges(g.Bridge)
 	}
@@ -160,9 +173,7 @@ func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 		// find the component that 'e' is referring to. Could be defined
 		// on the parent component to which we don't have access right now (can be fixed).
 		//
-		j.J("CR", e, context)
 		childcomps := c.Comp.Components()
-		j.J("ChildC", childcomps)
 		cc, ok := childcomps[e.Type]
 
 		// This can be optimized using a map. But since maps are not ordered,
@@ -178,7 +189,6 @@ func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 			wc := g.BuildComponent(cc)
 			// e, or e's parent?
 			g.Mount(wc, e)
-			j.J("Yeah! Found it!", cc, wc)
 		}
 	}
 }

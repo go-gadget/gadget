@@ -160,8 +160,6 @@ func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer) *vtree.Eleme
 	// always wrap component in <div> ?
 	tree := renderer.Render(g.UnexecutedTree, ctx)[0]
 
-	j.J("rendered", tree.ToString())
-
 	// we need to add a way for the "bridge" to call actions
 	// this means just adding all Handlers() to all nodes,
 	// to just the tree, or to already resolve the action
