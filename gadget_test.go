@@ -104,7 +104,7 @@ func TestGadgetComponent(t *testing.T) {
 	}
 }
 
-func TestNestedComponents(t *testing.T) {
+func SetupTestGadget() (*Gadget, *TestBridge) {
 	tb := NewTestBridge()
 	g := NewGadget(tb)
 	ChildBuilder := MakeDummyFactory(
@@ -117,7 +117,12 @@ func TestNestedComponents(t *testing.T) {
 	))
 	g.Mount(component, nil)
 
+	return g, tb
+}
+
+func TestNestedComponents(t *testing.T) {
 	t.Run("Test single loop", func(t *testing.T) {
+		g, _ := SetupTestGadget()
 		g.SingleLoop()
 
 		if len(g.Mounts) != 2 {
@@ -138,6 +143,7 @@ func TestNestedComponents(t *testing.T) {
 		}
 	})
 	t.Run("Test double loop", func(t *testing.T) {
+		g, _ := SetupTestGadget()
 		// actually, g will already have accumulated an extra loop, so this will be tripple loop
 		g.SingleLoop()
 		g.SingleLoop()
@@ -159,14 +165,13 @@ func TestNestedComponents(t *testing.T) {
 		}
 	})
 	t.Run("Test many loops", func(t *testing.T) {
-		tb.Reset()
+		g, tb := SetupTestGadget()
 
 		g.SingleLoop()
 
 		count := tb.AddCount
 
 		if count == 0 {
-			j.J("frop", *tb)
 			t.Errorf("Didn't get any Add changes on bridge")
 		}
 
