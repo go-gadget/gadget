@@ -104,11 +104,10 @@ func (g *Gadget) SingleLoop() {
 		for _, ch := range changes {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
-					for _, c := range g.Mounts {
+					for _, m := range g.Mounts {
 						var newMounts []*Mount
-						if c.Point.ID != el.ID {
-							j.J("del", c.Point.ID, el.ID)
-							newMounts = append(newMounts, c)
+						if m.Point.ID != el.ID {
+							newMounts = append(newMounts, m)
 						}
 						g.Mounts = newMounts
 					}
@@ -176,9 +175,8 @@ func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 
 		// This can be optimized using a map. But since maps are not ordered,
 		// we can't combine with g.Components
-		for _, c := range g.Mounts {
-			if c.Point.ID == e.ID {
-				j.J("Already got this one!")
+		for _, m := range g.Mounts {
+			if m.Point.ID == e.ID {
 				return
 			}
 		}
