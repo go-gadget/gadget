@@ -39,9 +39,54 @@ func MakeDummyFactory(Template string, Components map[string]Builder) Builder {
 	}
 }
 
+type TestBridge struct {
+	AttributeChangeCount uint16
+	ReplaceCount         uint16
+	AddCount             uint16
+	DeleteCount          uint16
+	InsertBeforeCount    uint16
+	SyncStateCount       uint16
+}
+
+func NewTestBridge() *TestBridge {
+	return &TestBridge{}
+}
+
+func (t *TestBridge) Reset() {
+	t.AttributeChangeCount = 0
+	t.ReplaceCount = 0
+	t.AddCount = 0
+	t.DeleteCount = 0
+	t.InsertBeforeCount = 0
+	t.SyncStateCount = 0
+}
+func (t *TestBridge) AttributeChange(Target vtree.Node, Adds, Deletes, Updates vtree.Attributes) error {
+	t.AttributeChangeCount++
+	return nil
+}
+func (t *TestBridge) Replace(old vtree.Node, new vtree.Node) error {
+	t.ReplaceCount++
+	return nil
+}
+func (t *TestBridge) Add(el vtree.Node, parent vtree.Node) error {
+	t.AddCount++
+	return nil
+}
+func (t *TestBridge) Delete(el vtree.Node) error {
+	t.DeleteCount++
+	return nil
+}
+func (t *TestBridge) InsertBefore(before vtree.Node, after vtree.Node) error {
+	t.InsertBeforeCount++
+	return nil
+}
+func (t *TestBridge) SyncState(from vtree.Node) {
+	t.SyncStateCount++
+}
+
 func TestGadgetComponent(t *testing.T) {
 
-	g := NewGadget(vtree.Builder())
+	g := NewGadget(NewTestBridge())
 	component := g.BuildComponent(MakeDummyFactory("<div><p>Hi</p></div>", nil))
 	g.Mount(component, nil)
 	g.SingleLoop()
@@ -60,7 +105,8 @@ func TestGadgetComponent(t *testing.T) {
 }
 
 func TestNestedComponents(t *testing.T) {
-	g := NewGadget(vtree.Builder())
+	tb := NewTestBridge()
+	g := NewGadget(tb)
 	ChildBuilder := MakeDummyFactory(
 		"<b>I am the child</b>",
 		nil,
@@ -112,10 +158,31 @@ func TestNestedComponents(t *testing.T) {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 	})
+	t.Run("Test many loops", func(t *testing.T) {
+		tb.Reset()
+
+		g.SingleLoop()
+
+		count := tb.AddCount
+
+		if count == 0 {
+			j.J("frop", *tb)
+			t.Errorf("Didn't get any Add changes on bridge")
+		}
+
+		for i := 0; i < 5; i++ {
+			g.SingleLoop()
+		}
+		if count != tb.AddCount {
+			t.Errorf("Unexpected extra Add actions. Expected %d, got %d",
+				count, tb.AddCount)
+		}
+	})
 }
 
 func TestConditionalComponent(t *testing.T) {
-	g := NewGadget(vtree.Builder())
+	tb := NewTestBridge()
+	g := NewGadget(tb)
 	ChildBuilder := MakeDummyFactory(
 		"<b>I am the child</b>",
 		nil,
@@ -184,7 +251,32 @@ func TestConditionalComponent(t *testing.T) {
 		g.SingleLoop()
 
 		if len(g.Mounts) != 2 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.Mounts))
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
+		}
+
+		// Can we assume this order?
+		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
+
+		if rendered != "<div><test-child></test-child></div>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+		rendered = g.Mounts[1].Component.ExecutedTree.ToString()
+
+		if rendered != "<b>I am the child</b>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+	})
+	t.Run("Test repeated toggle", func(t *testing.T) {
+		val := false
+
+		for i := 0; i < 4; i++ {
+			component.RawSetValue("BoolVal", val)
+			val = !val
+			g.SingleLoop()
+		}
+
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
 		}
 
 		// Can we assume this order?
