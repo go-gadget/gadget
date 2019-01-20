@@ -13,7 +13,7 @@ type Action interface {
 
 type Gadget struct {
 	Chan   chan Action
-	Mounts []*Mount // <- Mounts ?
+	Mounts []*Mount
 	Bridge vtree.Subject
 	Queue  []Action
 	Wakeup chan bool
@@ -68,18 +68,19 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 }
 
 func (g *Gadget) SingleLoop() {
-	workTrees := make(map[*WrappedComponent]*vtree.Element)
 
 	for len(g.Queue) > 0 {
+		// keep track of which trees have been synced
+		syncedTrees := make(map[*WrappedComponent]bool)
 
 		work := g.Queue[0]
 		g.Queue = g.Queue[1:]
 
 		c := work.Component()
 
-		if _, ok := workTrees[c]; !ok {
+		if !syncedTrees[c] {
 			tree := c.ExecutedTree
-			workTrees[c] = tree
+			syncedTrees[c] = true
 
 			// Get data before doing work
 			g.SyncState(tree)
