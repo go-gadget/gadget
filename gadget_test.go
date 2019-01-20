@@ -3,7 +3,6 @@ package gadget
 import (
 	"testing"
 
-	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
 
@@ -104,38 +103,38 @@ func TestGadgetComponent(t *testing.T) {
 	}
 }
 
-func SetupTestGadget() (*Gadget, *TestBridge) {
-	tb := NewTestBridge()
-	g := NewGadget(tb)
-	ChildBuilder := MakeDummyFactory(
-		"<b>I am the child</b>",
-		nil,
-	)
-	component := g.BuildComponent(MakeDummyFactory(
-		"<div><test-child></test-child></div>",
-		map[string]Builder{"test-child": ChildBuilder},
-	))
-	g.Mount(component, nil)
-
-	return g, tb
-}
-
 func TestNestedComponents(t *testing.T) {
+	SetupTestGadget := func() (*Gadget, *TestBridge) {
+		tb := NewTestBridge()
+		g := NewGadget(tb)
+		ChildBuilder := MakeDummyFactory(
+			"<b>I am the child</b>",
+			nil,
+		)
+		component := g.BuildComponent(MakeDummyFactory(
+			"<div><test-child></test-child></div>",
+			map[string]Builder{"test-child": ChildBuilder},
+		))
+		g.Mount(component, nil)
+
+		return g, tb
+	}
+
 	t.Run("Test single loop", func(t *testing.T) {
 		g, _ := SetupTestGadget()
 		g.SingleLoop()
 
+		// main + child
 		if len(g.Mounts) != 2 {
 			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
-			j.J(g.Mounts)
 		}
 
-		// Can we assume this order?
 		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
+
 		rendered = g.Mounts[1].Component.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
@@ -144,7 +143,7 @@ func TestNestedComponents(t *testing.T) {
 	})
 	t.Run("Test double loop", func(t *testing.T) {
 		g, _ := SetupTestGadget()
-		// actually, g will already have accumulated an extra loop, so this will be tripple loop
+
 		g.SingleLoop()
 		g.SingleLoop()
 
@@ -152,7 +151,6 @@ func TestNestedComponents(t *testing.T) {
 			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
 		}
 
-		// Can we assume this order?
 		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
@@ -164,6 +162,7 @@ func TestNestedComponents(t *testing.T) {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 	})
+
 	t.Run("Test many loops", func(t *testing.T) {
 		g, tb := SetupTestGadget()
 
@@ -172,33 +171,92 @@ func TestNestedComponents(t *testing.T) {
 		count := tb.AddCount
 
 		if count == 0 {
-			t.Errorf("Didn't get any Add changes on bridge")
+			t.Error("Expected AddChanges but didn't get any")
 		}
 
-		for i := 0; i < 5; i++ {
+		for i := 0; i < 4; i++ {
 			g.SingleLoop()
 		}
 		if count != tb.AddCount {
 			t.Errorf("Unexpected extra Add actions. Expected %d, got %d",
 				count, tb.AddCount)
 		}
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted components, found %d", len(g.Mounts))
+		}
+	})
+}
+
+func TestMultiNestedComponents(t *testing.T) {
+	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+		tb := NewTestBridge()
+		g := NewGadget(tb)
+		ChildBuilder := MakeDummyFactory(
+			"<b>I am the child</b>",
+			nil,
+		)
+		component := g.BuildComponent(MakeDummyFactory(
+			`<div><test-child g-if="BoolVal"></test-child>`+
+				`<test-child></test-child></div>`,
+			map[string]Builder{"test-child": ChildBuilder},
+		))
+		g.Mount(component, nil)
+
+		return g, tb, component
+	}
+
+	t.Run("Test multi loop odd", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
+
+		val := false
+
+		// odd loops hide conditional
+		for i := 0; i < 5; i++ {
+			component.RawSetValue("BoolVal", val)
+			val = !val
+			g.SingleLoop()
+		}
+		// Main + non-conditional child
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted components, found %d", len(g.Mounts))
+		}
+	})
+	t.Run("Test multi loop even", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
+
+		val := false
+
+		// even loops show conditional
+		for i := 0; i < 6; i++ {
+			component.RawSetValue("BoolVal", val)
+			val = !val
+			g.SingleLoop()
+		}
+		// Main + non-conditional child + conditional child
+		if len(g.Mounts) != 3 {
+			t.Errorf("Expected 3 mounted components, found %d", len(g.Mounts))
+		}
 	})
 }
 
 func TestConditionalComponent(t *testing.T) {
-	tb := NewTestBridge()
-	g := NewGadget(tb)
-	ChildBuilder := MakeDummyFactory(
-		"<b>I am the child</b>",
-		nil,
-	)
-	component := g.BuildComponent(MakeDummyFactory(
-		`<div><test-child g-if="BoolVal"></test-child></div>`,
-		map[string]Builder{"test-child": ChildBuilder},
-	))
-	g.Mount(component, nil)
+	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+		tb := NewTestBridge()
+		g := NewGadget(tb)
+		ChildBuilder := MakeDummyFactory(
+			"<b>I am the child</b>",
+			nil,
+		)
+		component := g.BuildComponent(MakeDummyFactory(
+			`<div><test-child g-if="BoolVal"></test-child></div>`,
+			map[string]Builder{"test-child": ChildBuilder},
+		))
+		g.Mount(component, nil)
+		return g, tb, component
+	}
 
 	t.Run("Test removed", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
 		component.RawSetValue("BoolVal", false)
 		g.SingleLoop()
 
@@ -213,6 +271,7 @@ func TestConditionalComponent(t *testing.T) {
 		}
 	})
 	t.Run("Test present", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
 		component.RawSetValue("BoolVal", true)
 		g.SingleLoop()
 
@@ -220,7 +279,6 @@ func TestConditionalComponent(t *testing.T) {
 			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
 		}
 
-		// Can we assume this order?
 		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
@@ -233,6 +291,7 @@ func TestConditionalComponent(t *testing.T) {
 		}
 	})
 	t.Run("Test toggle true -> false", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
 		component.RawSetValue("BoolVal", true)
 		g.SingleLoop()
 		component.RawSetValue("BoolVal", false)
@@ -242,14 +301,15 @@ func TestConditionalComponent(t *testing.T) {
 			t.Errorf("Expected 1 mounted component, found %d", len(g.Mounts))
 		}
 
-		// Can we assume this order?
 		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 	})
+
 	t.Run("Test toggle false -> true", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
 		component.RawSetValue("BoolVal", false)
 		g.SingleLoop()
 		component.RawSetValue("BoolVal", true)
@@ -259,7 +319,6 @@ func TestConditionalComponent(t *testing.T) {
 			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
 		}
 
-		// Can we assume this order?
 		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
@@ -271,7 +330,9 @@ func TestConditionalComponent(t *testing.T) {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 	})
+
 	t.Run("Test repeated toggle", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
 		val := false
 
 		for i := 0; i < 4; i++ {
@@ -284,7 +345,6 @@ func TestConditionalComponent(t *testing.T) {
 			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
 		}
 
-		// Can we assume this order?
 		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {

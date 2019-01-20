@@ -22,8 +22,9 @@ type Gadget struct {
 // Is a WrappedComponent actually a Mounted component?
 // Is a Component actually (interface) Mountable?
 type Mount struct {
-	Component *WrappedComponent
-	Point     *vtree.Element
+	Component   *WrappedComponent
+	Point       *vtree.Element
+	ToBeRemoved bool
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
@@ -48,7 +49,7 @@ func (g *Gadget) Mount(c *WrappedComponent, point *vtree.Element) {
 	// probably needs lock
 
 	// store node where mounted (or nil)
-	g.Mounts = append(g.Mounts, &Mount{c, point})
+	g.Mounts = append(g.Mounts, &Mount{c, point, false})
 	c.Update = g.Chan
 	// c.Mounted() hook?
 }
@@ -70,7 +71,6 @@ func (g *Gadget) SingleLoop() {
 	workTrees := make(map[*WrappedComponent]*vtree.Element)
 
 	for len(g.Queue) > 0 {
-		j.J("There's work!", len(g.Queue), g.Queue[0])
 
 		work := g.Queue[0]
 		g.Queue = g.Queue[1:]
@@ -88,13 +88,10 @@ func (g *Gadget) SingleLoop() {
 		work.Run()
 	}
 
-	var handled []*Mount
-
-	for len(g.Mounts) > 0 {
-		m := g.Mounts[0]
-		handled = append(handled, m)
-
-		g.Mounts = g.Mounts[1:]
+	// Newly created components are added to the end of g.Mounts,
+	// so it can grow. Newly added components also need to be handled
+	for i := 0; i < len(g.Mounts); i++ {
+		m := g.Mounts[i]
 
 		c := m.Component
 		p := m.Point
@@ -105,15 +102,14 @@ func (g *Gadget) SingleLoop() {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
 					for _, m := range g.Mounts {
-						var newMounts []*Mount
-						if m.Point.ID != el.ID {
-							newMounts = append(newMounts, m)
+						if m.Point != nil && m.Point.ID == el.ID {
+							m.ToBeRemoved = true
 						}
-						g.Mounts = newMounts
 					}
 				}
 			}
 		}
+
 		if p != nil {
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
@@ -124,9 +120,19 @@ func (g *Gadget) SingleLoop() {
 		changes.ApplyChanges(g.Bridge)
 	}
 
-	g.Mounts = handled
+	// Remove mountpoints that were marked for deletion
+	// (make this a flag in stead?)
+	var FilteredMounts []*Mount
+	for _, m := range g.Mounts {
+		if m.ToBeRemoved {
+			continue
+		}
+		FilteredMounts = append(FilteredMounts, m)
+	}
+	g.Mounts = FilteredMounts
 
 }
+
 func (g *Gadget) MainLoop() {
 	// Right now an update is triggered by sending something to the Chan channel.
 	// If we'd do this on every SetValue, we'd get a lot of updates.
@@ -167,20 +173,20 @@ func (g *Gadget) MainLoop() {
 // BuildCR is the callback called when executing on components.
 func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 	return func(e *vtree.Element, context *vtree.Context) {
-		// find the component that 'e' is referring to. Could be defined
-		// on the parent component to which we don't have access right now (can be fixed).
-		//
-		childcomps := c.Comp.Components()
-		cc, ok := childcomps[e.Type]
 
 		// This can be optimized using a map. But since maps are not ordered,
 		// we can't combine with g.Components
 		for _, m := range g.Mounts {
-			if m.Point.ID == e.ID {
+			if m.Point != nil && m.Point.ID == e.ID { // XXX equals()?
 				return
 			}
 		}
-		if ok {
+
+		// find the component that 'e' is referring to. Could be defined
+		// on the parent component to which we don't have access right now (can be fixed).
+		//
+		childcomps := c.Comp.Components()
+		if cc, ok := childcomps[e.Type]; ok {
 			// cc is a ComponentBuilder, resulting in a Copmonent, not a WrappedComponent
 			wc := g.BuildComponent(cc)
 			// e, or e's parent?
