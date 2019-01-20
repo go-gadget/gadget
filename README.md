@@ -11,6 +11,8 @@ Expect the API and code to be pre-alpha. Things will change and break.
 
 Check https://github.com/go-gadget/examples for actual sample code.
 
+Or try the 'todo' example directly on https://go-gadget.github.io/
+
 ## Running code
 
 ```
