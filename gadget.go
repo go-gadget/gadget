@@ -127,6 +127,7 @@ func (g *Gadget) SingleLoop() {
 	for _, m := range g.Mounts {
 		if m.ToBeRemoved {
 			continue
+			// call some hook?
 		}
 		FilteredMounts = append(FilteredMounts, m)
 	}
@@ -173,25 +174,22 @@ func (g *Gadget) MainLoop() {
 
 // BuildCR is the callback called when executing on components.
 func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
-	return func(e *vtree.Element, context *vtree.Context) {
+	return func(componentElement *vtree.Element, context *vtree.Context) {
 
 		// This can be optimized using a map. But since maps are not ordered,
 		// we can't combine with g.Components
 		for _, m := range g.Mounts {
-			if m.Point != nil && m.Point.ID == e.ID { // XXX equals()?
+			if m.Point != nil && m.Point.ID == componentElement.ID { // XXX equals()?
 				return
 			}
 		}
 
-		// find the component that 'e' is referring to. Could be defined
-		// on the parent component to which we don't have access right now (can be fixed).
-		//
+		// Build the component, if possible
 		childcomps := c.Comp.Components()
-		if cc, ok := childcomps[e.Type]; ok {
-			// cc is a ComponentBuilder, resulting in a Copmonent, not a WrappedComponent
-			wc := g.BuildComponent(cc)
-			// e, or e's parent?
-			g.Mount(wc, e)
+		if builder, ok := childcomps[componentElement.Type]; ok {
+			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
+			wc := g.BuildComponent(builder)
+			g.Mount(wc, componentElement)
 		}
 	}
 }
