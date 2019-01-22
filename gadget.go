@@ -163,12 +163,11 @@ func (g *Gadget) MainLoop() {
 		}
 	}()
 
-	g.SingleLoop()
 	for {
-		j.J("Sleeping until there's some work")
-		<-g.Wakeup
-		g.SingleLoop()
 		j.J("Loop!")
+		g.SingleLoop()
+		<-g.Wakeup
+		j.J("Sleeping until there's some work")
 	}
 }
 
