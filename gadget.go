@@ -98,7 +98,7 @@ func (g *Gadget) SingleLoop() {
 		p := m.Point
 		changes := c.BuildDiff(g.BuildCR(c))
 
-		// See if components were removed. If so, remove them from mounts
+		// Check if diff shows components are removed. If so, mark them for removal
 		for _, ch := range changes {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {

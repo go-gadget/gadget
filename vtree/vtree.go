@@ -1,7 +1,6 @@
 package vtree
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -83,35 +82,6 @@ type Text struct {
 	Text string
 }
 
-type Component struct {
-	ID   ElementID
-	Type string
-}
-
-func (c *Component) GetID() ElementID {
-	return c.ID
-}
-
-func (c *Component) ToString() string {
-	return fmt.Sprintf("<%s></%s>", c.Type, c.Type)
-}
-
-func (c *Component) Clone() Node {
-	return &Component{c.ID, c.Type}
-}
-
-func (c *Component) Equals(other Node) bool {
-	cc, ok := other.(*Component)
-	if !ok {
-		return false
-	}
-
-	if c.Type != cc.Type {
-		return false
-	}
-	return c.GetID() == cc.GetID()
-}
-
 func (t *Text) GetID() ElementID {
 	return t.ID
 }
@@ -134,6 +104,7 @@ func (t *Text) Equals(other Node) bool {
 	if t.Text != tt.Text {
 		return false
 	}
+
 	return t.GetID() == tt.GetID()
 }
 
@@ -142,10 +113,6 @@ type NodeList []Node
 // El constructs an element of a specific type
 func El(Type string) *Element {
 	return &Element{ID: nextID(), Type: Type, Attributes: make(Attributes), Handlers: make(map[string]callable)}
-}
-
-func Comp(Type string) *Component {
-	return &Component{ID: nextID(), Type: Type}
 }
 
 func (el *Element) Clone() Node {
