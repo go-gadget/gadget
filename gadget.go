@@ -103,7 +103,7 @@ func (g *Gadget) SingleLoop() {
 
 		c := m.Component
 		p := m.Point
-		changes := c.BuildDiff(g.BuildCR(c))
+		changes := c.BuildDiff(g.ComponentHandler(c))
 
 		// Check if diff shows components are removed. If so, mark them for removal
 		for _, ch := range changes {
@@ -178,8 +178,8 @@ func (g *Gadget) MainLoop() {
 	}
 }
 
-// BuildCR is the callback called when executing on components.
-func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
+// ComponentHandler is the callback called when executing on components.
+func (g *Gadget) ComponentHandler(c *WrappedComponent) vtree.ComponentRenderer {
 	return func(componentElement *vtree.Element, context *vtree.Context) {
 
 		// This can be optimized using a map. But since maps are not ordered,
