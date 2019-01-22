@@ -27,6 +27,13 @@ type Mount struct {
 	ToBeRemoved bool
 }
 
+func (m *Mount) HasComponent(componentElement *vtree.Element) bool {
+	if m.Point == nil {
+		return false
+	}
+	return m.Point.Equals(componentElement)
+}
+
 func NewGadget(bridge vtree.Subject) *Gadget {
 	return &Gadget{
 		Chan:   make(chan Action),
@@ -103,7 +110,7 @@ func (g *Gadget) SingleLoop() {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
 					for _, m := range g.Mounts {
-						if m.Point != nil && m.Point.ID == el.ID {
+						if m.HasComponent(el) {
 							m.ToBeRemoved = true
 						}
 					}
@@ -178,7 +185,7 @@ func (g *Gadget) BuildCR(c *WrappedComponent) vtree.ComponentRenderer {
 		// This can be optimized using a map. But since maps are not ordered,
 		// we can't combine with g.Components
 		for _, m := range g.Mounts {
-			if m.Point != nil && m.Point.ID == componentElement.ID { // XXX equals()?
+			if m.HasComponent(componentElement) {
 				return
 			}
 		}
