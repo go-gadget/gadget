@@ -24,8 +24,8 @@ func (d *DummyComponent) Components() map[string]Builder {
 
 func MakeDummyFactory(Template string, Components map[string]Builder) Builder {
 	return func() Component {
-		s := &DummyComponent{BaseComponent: BaseComponent{}, DummyTemplate: Template, DummyComponents: Components}
-		s.BaseComponent.Storage = s
+		s := &DummyComponent{DummyTemplate: Template, DummyComponents: Components}
+		s.SetupStorage(s)
 		return s
 	}
 }

@@ -39,6 +39,10 @@ type BaseComponent struct {
 	Storage interface{}
 }
 
+func (b *BaseComponent) SetupStorage(Storage interface{}) {
+	b.Storage = Storage
+}
+
 func (b *BaseComponent) Init() {
 }
 
