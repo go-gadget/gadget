@@ -35,6 +35,29 @@ type Component interface {
 	Components() map[string]Builder
 }
 
+type BaseComponent struct {
+	Storage interface{}
+}
+
+func (b *BaseComponent) Init() {
+}
+
+func (b *BaseComponent) Data() interface{} {
+	return b.Storage
+}
+
+func (b *BaseComponent) Template() string {
+	return ""
+}
+
+func (b *BaseComponent) Handlers() map[string]Handler {
+	return nil
+}
+
+func (b *BaseComponent) Components() map[string]Builder {
+	return nil
+}
+
 type ActionData struct {
 	component *WrappedComponent
 	node      vtree.Node

@@ -7,25 +7,15 @@ import (
 )
 
 type DummyComponent struct {
+	BaseComponent
 	DummyTemplate   string
 	DummyComponents map[string]Builder
 	BoolVal         bool
 	IntArrayVal     []int
 }
 
-func (d *DummyComponent) Init() {
-}
-
-func (d *DummyComponent) Data() interface{} {
-	return d
-}
-
 func (d *DummyComponent) Template() string {
 	return d.DummyTemplate
-}
-
-func (d *DummyComponent) Handlers() map[string]Handler {
-	return nil
 }
 
 func (d *DummyComponent) Components() map[string]Builder {
@@ -34,7 +24,8 @@ func (d *DummyComponent) Components() map[string]Builder {
 
 func MakeDummyFactory(Template string, Components map[string]Builder) Builder {
 	return func() Component {
-		s := &DummyComponent{DummyTemplate: Template, DummyComponents: Components}
+		s := &DummyComponent{BaseComponent: BaseComponent{}, DummyTemplate: Template, DummyComponents: Components}
+		s.BaseComponent.Storage = s
 		return s
 	}
 }
