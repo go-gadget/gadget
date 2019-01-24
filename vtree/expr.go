@@ -144,6 +144,9 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 		return []*Element{clone}
 	}
 
+	// g-bind should take the property and set it as attribute on the rendered
+	// element XXX
+
 	// Don't recurse into Children on components. In stead,
 	// call ComponentRenderer
 	if e.IsComponent() {
@@ -151,7 +154,9 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 			// Handler can decide if re-execution is actually necessary.
 			// Alternatively, store copy of context on element, do
 			// separate execute
+			m := context.Mark()
 			r.Handler(e, context)
+			context.Pop(m)
 		}
 	}
 	// XXX make this optional: deep vs. shallow

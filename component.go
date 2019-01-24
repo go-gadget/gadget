@@ -24,11 +24,16 @@ import (
  * Since we can't observe property changes, we need a different mechanism
  * for handling changes. An option could be a channel, that will put it on a
  * queue that will be unique-d
+ *
+ * A component defines props it takes. These props can then be passed when using
+ * the component. E.g. title="Hello World".
+ * To (generically) dynamically bind a prop, use g-bind:title="var"
  */
 type Handler func(chan Action)
 
 type Component interface {
 	Init()
+	Props() []string
 	Template() string
 	Data() interface{}
 	Handlers() map[string]Handler // Actions ?
@@ -44,6 +49,10 @@ func (b *BaseComponent) SetupStorage(Storage interface{}) {
 }
 
 func (b *BaseComponent) Init() {
+}
+
+func (b *BaseComponent) Props() []string {
+	return []string{}
 }
 
 func (b *BaseComponent) Data() interface{} {
