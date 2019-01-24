@@ -139,7 +139,7 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 	}
 
 	if gValue, ok := clone.Attributes["g-value"]; ok {
-		// a g-value replaces all children, so don't don't recurse
+		// a g-value replaces all children, so don't recurse
 		r.RenderValue(clone, gValue, context)
 		return []*Element{clone}
 	}
