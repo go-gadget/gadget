@@ -433,4 +433,6 @@ func TestComponentArgs(t *testing.T) {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 	})
+
+	// test: g-bind (after implementation), property not set
 }
