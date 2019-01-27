@@ -182,7 +182,7 @@ func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 	}
 }
 
-func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer) *vtree.Element {
+func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer, props []*vtree.Variable) *vtree.Element {
 	// This is actually a 2-step proces, just like builtin templates:
 	// - compile, compiles text to tree
 	// - render, evaluates expressions
@@ -190,11 +190,14 @@ func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer) *vtree.Eleme
 	renderer := vtree.NewRenderer()
 	renderer.Handler = handler
 
-	ctx := vtree.MakeContext(data)
+	context := vtree.MakeContext(data)
 
+	for _, variable := range props {
+		context.PushValue(variable.Name, variable.Value)
+	}
 	// What to do if multi-element (g-for), or nil (g-if)? XXX
 	// always wrap component in <div> ?
-	tree := renderer.Render(g.UnexecutedTree, ctx)[0]
+	tree := renderer.Render(g.UnexecutedTree, context)[0]
 
 	// we need to add a way for the "bridge" to call actions
 	// this means just adding all Handlers() to all nodes,
@@ -207,8 +210,8 @@ func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer) *vtree.Eleme
 	return tree
 }
 
-func (g *WrappedComponent) BuildDiff(handler vtree.ComponentRenderer) (res vtree.ChangeSet) {
-	tree := g.Execute(handler)
+func (g *WrappedComponent) BuildDiff(handler vtree.ComponentRenderer, props []*vtree.Variable) (res vtree.ChangeSet) {
+	tree := g.Execute(handler, props)
 
 	if g.ExecutedTree == nil {
 		res = vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}

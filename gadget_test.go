@@ -27,9 +27,9 @@ func (d *DummyComponent) Components() map[string]Builder {
 	return d.DummyComponents
 }
 
-func MakeDummyFactory(Template string, Components map[string]Builder) Builder {
+func MakeDummyFactory(Template string, Components map[string]Builder, Props []string) Builder {
 	return func() Component {
-		s := &DummyComponent{DummyTemplate: Template, DummyComponents: Components}
+		s := &DummyComponent{DummyTemplate: Template, DummyComponents: Components, DummyProps: Props}
 		s.SetupStorage(s)
 		return s
 	}
@@ -83,7 +83,7 @@ func (t *TestBridge) SyncState(from vtree.Node) {
 func TestGadgetComponent(t *testing.T) {
 
 	g := NewGadget(NewTestBridge())
-	component := g.BuildComponent(MakeDummyFactory("<div><p>Hi</p></div>", nil))
+	component := g.BuildComponent(MakeDummyFactory("<div><p>Hi</p></div>", nil, nil))
 	g.Mount(component, nil)
 	g.SingleLoop()
 
@@ -107,10 +107,12 @@ func TestNestedComponents(t *testing.T) {
 		ChildBuilder := MakeDummyFactory(
 			"<b>I am the child</b>",
 			nil,
+			nil,
 		)
 		component := g.BuildComponent(MakeDummyFactory(
 			"<div><test-child></test-child></div>",
 			map[string]Builder{"test-child": ChildBuilder},
+			nil,
 		))
 		g.Mount(component, nil)
 
@@ -191,11 +193,13 @@ func TestMultiNestedComponents(t *testing.T) {
 		ChildBuilder := MakeDummyFactory(
 			"<b>I am the child</b>",
 			nil,
+			nil,
 		)
 		component := g.BuildComponent(MakeDummyFactory(
 			`<div><test-child g-if="BoolVal"></test-child>`+
 				`<test-child></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder},
+			nil,
 		))
 		g.Mount(component, nil)
 
@@ -243,10 +247,12 @@ func TestConditionalComponent(t *testing.T) {
 		ChildBuilder := MakeDummyFactory(
 			"<b>I am the child</b>",
 			nil,
+			nil,
 		)
 		component := g.BuildComponent(MakeDummyFactory(
 			`<div><test-child g-if="BoolVal"></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder},
+			nil,
 		))
 		g.Mount(component, nil)
 		return g, tb, component
@@ -362,10 +368,12 @@ func TestForComponent(t *testing.T) {
 		ChildBuilder := MakeDummyFactory(
 			"<b>I am the child</b>",
 			nil,
+			nil,
 		)
 		component := g.BuildComponent(MakeDummyFactory(
 			`<div><test-child g-for="IntArrayVal"></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder},
+			nil,
 		))
 		g.Mount(component, nil)
 		return g, tb, component
@@ -396,24 +404,24 @@ func TestForComponent(t *testing.T) {
 }
 
 func TestComponentArgs(t *testing.T) {
-	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+	SetupTestGadget := func(Props []string) (*Gadget, *TestBridge, *WrappedComponent) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
 		ChildBuilder := MakeDummyFactory(
 			`<b g-value="someprop">I am the child</b>`,
 			nil,
+			Props,
 		)
 		component := g.BuildComponent(MakeDummyFactory(
 			`<div><test-child someprop="Hello World"></test-child></div>`,
-			map[string]Builder{"test-child": ChildBuilder},
+			map[string]Builder{"test-child": ChildBuilder}, nil,
 		))
 		g.Mount(component, nil)
 		return g, tb, component
 	}
 
 	t.Run("Test direct attribute", func(t *testing.T) {
-		g, _, component := SetupTestGadget()
-		component.Comp.(*DummyComponent).DummyProps = []string{"someprop"}
+		g, _, _ := SetupTestGadget([]string{"someprop"})
 		g.SingleLoop()
 
 		if len(g.Mounts) != 2 {

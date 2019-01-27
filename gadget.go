@@ -1,6 +1,8 @@
 package gadget
 
 import (
+	"reflect"
+
 	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
@@ -22,8 +24,12 @@ type Gadget struct {
 // Is a WrappedComponent actually a Mounted component?
 // Is a Component actually (interface) Mountable?
 type Mount struct {
-	Component   *WrappedComponent
-	Point       *vtree.Element
+	Component *WrappedComponent
+	Point     *vtree.Element
+	// Context is now (temp) stored on Mount which is ugly.
+	// In stead, create separate queue of mounts to handle with their
+	// contexts?
+	Props       []*vtree.Variable
 	ToBeRemoved bool
 }
 
@@ -51,14 +57,16 @@ func (g *Gadget) BuildComponent(b Builder) *WrappedComponent {
 	return comp
 }
 
-func (g *Gadget) Mount(c *WrappedComponent, point *vtree.Element) {
+func (g *Gadget) Mount(c *WrappedComponent, point *vtree.Element) *Mount {
 	// Not sure if this really is mounting
 	// probably needs lock
 
 	// store node where mounted (or nil)
-	g.Mounts = append(g.Mounts, &Mount{c, point, false})
+	mount := &Mount{Component: c, Point: point, Props: nil, ToBeRemoved: false}
+	g.Mounts = append(g.Mounts, mount)
 	c.Update = g.Chan
 	// c.Mounted() hook?
+	return mount
 }
 
 func (g *Gadget) SyncState(Tree vtree.Node) {
@@ -103,7 +111,7 @@ func (g *Gadget) SingleLoop() {
 
 		c := m.Component
 		p := m.Point
-		changes := c.BuildDiff(g.ComponentHandler(c))
+		changes := c.BuildDiff(g.ComponentHandler(c), m.Props)
 
 		// Check if diff shows components are removed. If so, mark them for removal
 		for _, ch := range changes {
@@ -178,6 +186,18 @@ func (g *Gadget) MainLoop() {
 	}
 }
 
+func (g *Gadget) PropsForComponent(c Component, componentElement *vtree.Element, context *vtree.Context) []*vtree.Variable {
+	var props []*vtree.Variable
+
+	for _, propName := range c.Props() {
+		val, ok := componentElement.Attributes[propName]
+		if ok {
+			props = append(props, &vtree.Variable{propName, reflect.ValueOf(val)})
+		}
+	}
+	return props
+}
+
 // ComponentHandler is the callback called when executing on components.
 func (g *Gadget) ComponentHandler(c *WrappedComponent) vtree.ComponentRenderer {
 	return func(componentElement *vtree.Element, context *vtree.Context) {
@@ -186,6 +206,7 @@ func (g *Gadget) ComponentHandler(c *WrappedComponent) vtree.ComponentRenderer {
 		// we can't combine with g.Components
 		for _, m := range g.Mounts {
 			if m.HasComponent(componentElement) {
+				m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
 				return
 			}
 		}
@@ -195,7 +216,8 @@ func (g *Gadget) ComponentHandler(c *WrappedComponent) vtree.ComponentRenderer {
 		if builder, ok := childcomps[componentElement.Type]; ok {
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
 			wc := g.BuildComponent(builder)
-			g.Mount(wc, componentElement)
+			m := g.Mount(wc, componentElement)
+			m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
 		}
 	}
 }
