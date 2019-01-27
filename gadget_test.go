@@ -10,8 +10,13 @@ type DummyComponent struct {
 	BaseComponent
 	DummyTemplate   string
 	DummyComponents map[string]Builder
+	DummyProps      []string
 	BoolVal         bool
 	IntArrayVal     []int
+}
+
+func (d *DummyComponent) Props() []string {
+	return d.DummyProps
 }
 
 func (d *DummyComponent) Template() string {
@@ -386,6 +391,38 @@ func TestForComponent(t *testing.T) {
 			if rendered != "<b>I am the child</b>" {
 				t.Errorf("Did not get expected rendered tree, got %s", rendered)
 			}
+		}
+	})
+}
+
+func TestComponentArgs(t *testing.T) {
+	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+		tb := NewTestBridge()
+		g := NewGadget(tb)
+		ChildBuilder := MakeDummyFactory(
+			`<b g-value="someprop">I am the child</b>`,
+			nil,
+		)
+		component := g.BuildComponent(MakeDummyFactory(
+			`<div><test-child someprop="Hello World"></test-child></div>`,
+			map[string]Builder{"test-child": ChildBuilder},
+		))
+		g.Mount(component, nil)
+		return g, tb, component
+	}
+
+	t.Run("Test direct attribute", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
+		component.Comp.(*DummyComponent).DummyProps = []string{"someprop"}
+		g.SingleLoop()
+
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
+		}
+
+		rendered := g.Mounts[1].Component.ExecutedTree.ToString()
+		if rendered != "<b>Hello World</b>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 	})
 }
