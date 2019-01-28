@@ -195,6 +195,7 @@ func (g *Gadget) PropsForComponent(c Component, componentElement *vtree.Element,
 			props = append(props, &vtree.Variable{propName, reflect.ValueOf(val)})
 		}
 	}
+
 	return props
 }
 

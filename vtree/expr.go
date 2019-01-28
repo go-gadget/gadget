@@ -177,7 +177,7 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 			// Alternatively, store copy of context on element, do
 			// separate execute
 			m := context.Mark()
-			r.Handler(e, context)
+			r.Handler(clone, context)
 			context.Pop(m)
 		}
 	}

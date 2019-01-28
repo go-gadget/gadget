@@ -13,6 +13,7 @@ type DummyComponent struct {
 	DummyProps      []string
 	BoolVal         bool
 	IntArrayVal     []int
+	StringVal       string
 }
 
 func (d *DummyComponent) Props() []string {
@@ -434,5 +435,32 @@ func TestComponentArgs(t *testing.T) {
 		}
 	})
 
-	// test: g-bind (after implementation), property not set
+	t.Run("Test bound attribute", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
+		ChildBuilder := MakeDummyFactory(
+			`<b g-value="someprop">I am the child</b>`,
+			nil,
+			[]string{"someprop"},
+		)
+		// Because the parser assumes the ":" is actually a namespace separator,
+		// it will get removed. Hence, in a template, you need to use a double ::
+		// (or use g-bind:attr)
+		component := g.BuildComponent(MakeDummyFactory(
+			`<div><test-child g-bind:someprop="StringVal"></test-child></div>`,
+			map[string]Builder{"test-child": ChildBuilder}, nil,
+		))
+
+		component.RawSetValue("StringVal", "Hello World")
+		g.Mount(component, nil)
+		g.SingleLoop()
+
+		if len(g.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted component, found %d", len(g.Mounts))
+		}
+
+		rendered := g.Mounts[1].Component.ExecutedTree.ToString()
+		if rendered != "<b>Hello World</b>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+	})
 }

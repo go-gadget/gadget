@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"strings"
 )
 
 func Parse(s string) *Element {
@@ -43,7 +44,11 @@ func Parse(s string) *Element {
 				parents[0].C(current)
 			}
 			for _, attr := range element.Attr {
-				current.A(attr.Name.Local, attr.Value)
+				attrName := attr.Name.Local
+				if strings.HasPrefix(attr.Name.Space, "g-") {
+					attrName = attr.Name.Space + ":" + attr.Name.Local
+				}
+				current.A(attrName, attr.Value)
 				// not sure what to do with this...
 				if attr.Name.Local == "id" {
 					current.SetID(ElementID(attr.Value))
