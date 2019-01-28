@@ -3,6 +3,7 @@ package vtree
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type ComponentRenderer func(*Element, *Context)
@@ -108,6 +109,22 @@ func (r *Renderer) RenderClass(e *Element, classes string, context *Context) {
 	/// XXX TODO deduplicate
 }
 
+// RenderBind scans the attributes in e for g-bind:<attr> or :<attr>
+// looks up the value in the context and sets it as an attribute on the
+// element. If not found, nothing will be set (so a default may persist)
+func (r *Renderer) RenderBind(e *Element, context *Context) {
+	for k, v := range e.Attributes {
+		if strings.HasPrefix(k, "g-bind:") || strings.HasPrefix(k, ":") {
+			attr := strings.SplitN(k, ":", 2)[1]
+			if value := context.Get(v); value != NotFound {
+				// For now attrs are always strings XXX
+				e.Attributes[attr] = value.String()
+			}
+			delete(e.Attributes, k)
+		}
+	}
+}
+
 // Render the tree with root `e`, adding, cloning, removing nodes and handled
 // g-<expressions> where necessary, leaving the original tree in tact.
 func (r *Renderer) Render(e *Element, context *Context) []*Element {
@@ -133,6 +150,11 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 			return nil
 		}
 	}
+
+	// g-bind:attr or just ":attr". Since we don't know
+	// what attr looks like, we need to iterate over all attributes
+	// Also, bind goes before class, so g-class wins from g-bind:class
+	r.RenderBind(clone, context)
 
 	if gValue, ok := clone.Attributes["g-class"]; ok {
 		r.RenderClass(clone, gValue, context)

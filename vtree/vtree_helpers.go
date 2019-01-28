@@ -5,6 +5,13 @@ import (
 	"testing"
 )
 
+// AssertElementCount asserts the number of elements
+func AssertElementCount(t *testing.T, elements []*Element, count int) {
+	if l := len(elements); l != count {
+		t.Errorf("Expected %d elements but got %d", count, l)
+	}
+}
+
 // AssertElement asserts that el is of the specified type
 func AssertElement(t *testing.T, el *Element, Type string) {
 	t.Helper()
@@ -56,5 +63,21 @@ func AssertTextNode(t *testing.T, node Node, content string) {
 		t.Errorf("Expected text to match '%s', got '%s'", content,
 			tNode.Text)
 
+	}
+}
+
+// AssertAttribute asserts the presence and value of an attribute on an element
+func AssertAttribute(t *testing.T, e *Element, key string, value string) {
+	t.Helper()
+	if val, ok := e.Attributes[key]; !ok || val != value {
+		t.Errorf("Didn't get expected attribute, got %s", val)
+	}
+}
+
+// AssertAttributeNotPresent asserts a specific attribute does not exist on an element
+func AssertAttributeNotPresent(t *testing.T, e *Element, key string) {
+	t.Helper()
+	if val, ok := e.Attributes[key]; ok {
+		t.Errorf("Unexpectedly found attribute %s with value %s", key, val)
 	}
 }

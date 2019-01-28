@@ -93,13 +93,7 @@ func TestForExpression(t *testing.T) {
 
 	res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
 
-	if res == nil {
-		t.Error("Expected to get node back")
-	}
-
-	if len(res) != 4 {
-		t.Errorf("Expected a node with 4 children but got %d", len(res))
-	}
+	AssertElementCount(t, res, 4)
 
 	for _, n := range res {
 		AssertElement(t, n, "div")
@@ -141,13 +135,7 @@ func TestForExpressionWithContext(t *testing.T) {
 	// res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
 	res := renderer.Render(e, ctx)
 
-	if res == nil {
-		t.Error("Expected to get node back")
-	}
-
-	if len(res) != 4 {
-		t.Errorf("Expected a node with 4 children but got %d", len(res))
-	}
+	AssertElementCount(t, res, 4)
 
 	AssertElement(t, res[2].Children[0].(*Element), "div")
 	AssertTextNode(t, res[2].Children[0].(*Element).Children[0], "3")
@@ -160,13 +148,7 @@ func TestForValue(t *testing.T) {
 	ctx.Push("MyArray", []string{"a", "bc", "c"})
 	res := renderer.Render(e, ctx)
 
-	if res == nil {
-		t.Error("Expected to get node back")
-	}
-
-	if len(res) != 3 {
-		t.Errorf("Expected a node with 3 children but got %d", len(res))
-	}
+	AssertElementCount(t, res, 3)
 
 	AssertTextNode(t, res[2].Children[0], "c")
 	if len(res[2].Children) != 1 {
@@ -181,13 +163,9 @@ func TestClass(t *testing.T) {
 	ctx.Push("MyClasses", "extra more")
 	res := renderer.Render(e, ctx)
 
-	if res == nil || len(res) != 1 {
-		t.Error("Expected to get exactly one node back")
-	}
+	AssertElementCount(t, res, 1)
 
-	if res[0].Attributes["class"] != "some classes set extra more" {
-		t.Errorf("Didn't get expected classes, got %s", res[0].Attributes["class"])
-	}
+	AssertAttribute(t, res[0], "class", "some classes set extra more")
 }
 
 func TestClassNoneSet(t *testing.T) {
@@ -197,14 +175,9 @@ func TestClassNoneSet(t *testing.T) {
 	ctx.Push("MyClasses", "extra more")
 	res := renderer.Render(e, ctx)
 
-	if res == nil || len(res) != 1 {
-		t.Error("Expected to get exactly one node back")
-	}
+	AssertElementCount(t, res, 1)
 
-	if res[0].Attributes["class"] != "extra more" {
-		t.Errorf("Didn't get expected classes, got %s", res[0].Attributes["class"])
-	}
-
+	AssertAttribute(t, res[0], "class", "extra more")
 }
 
 func TestIfValueClass(t *testing.T) {
@@ -221,10 +194,9 @@ func TestIfValueClass(t *testing.T) {
 			}{"present", true, 42},
 		),
 	)
-	if res == nil || len(res) != 1 {
-		t.Error("Expected to get exactly one node back")
-	}
-	// Make this a helper?
+
+	AssertElementCount(t, res, 1)
+
 	el := res[0]
 
 	AssertElementAttributes(t, el, Attributes{"class": "present"})
@@ -272,14 +244,69 @@ func TestDeepNestedChange(t *testing.T) {
 	}
 }
 
-// func TestComponentRender(t *testing.T) {
-// 	tpl := `<div><my-component></my-component></div>`
-// 	tree := Parse(tpl)
-// 	ctx := &Context{}
-// 	fp := tree.Render(ctx)
+func TestBind(t *testing.T) {
+	t.Run("Test regular case, long syntax", func(t *testing.T) {
+		renderer := NewRenderer()
+		e := El("div").A("g-bind:someprop", "somevalue")
+		ctx := &Context{}
+		ctx.Push("somevalue", "Hello World")
+		res := renderer.Render(e, ctx)
 
-// 	j.J("RES", fp)
-// 	if fp != nil {
-// 		t.Errorf("lal")
-// 	}
-// }
+		AssertElementCount(t, res, 1)
+
+		AssertAttributeNotPresent(t, res[0], "g-bind:someprop")
+		AssertAttribute(t, res[0], "someprop", "Hello World")
+	})
+
+	t.Run("Test regular case, short syntax", func(t *testing.T) {
+		renderer := NewRenderer()
+		e := El("div").A(":someprop", "somevalue")
+		ctx := &Context{}
+		ctx.Push("somevalue", "Hello World")
+		res := renderer.Render(e, ctx)
+
+		AssertElementCount(t, res, 1)
+
+		AssertAttributeNotPresent(t, res[0], "g-bind:someprop")
+		AssertAttribute(t, res[0], "someprop", "Hello World")
+	})
+	t.Run("Test overwrite", func(t *testing.T) {
+		renderer := NewRenderer()
+		e := El("div").A("someprop", "old value").A("g-bind:someprop", "somevalue")
+		ctx := &Context{}
+		ctx.Push("somevalue", "Hello World")
+		res := renderer.Render(e, ctx)
+
+		AssertElementCount(t, res, 1)
+
+		AssertAttributeNotPresent(t, res[0], "g-bind:someprop")
+		AssertAttribute(t, res[0], "someprop", "Hello World")
+	})
+	t.Run("Test no overwrite if missing", func(t *testing.T) {
+		renderer := NewRenderer()
+		e := El("div").A("someprop", "old value").A("g-bind:someprop", "somevalue")
+		ctx := &Context{}
+		res := renderer.Render(e, ctx)
+
+		AssertElementCount(t, res, 1)
+
+		AssertAttributeNotPresent(t, res[0], "g-bind:someprop")
+		AssertAttribute(t, res[0], "someprop", "old value")
+	})
+	t.Run("Test mix with g-class", func(t *testing.T) {
+		// If there's both a g-bind:class and g-class, the latter should "win" because it's more specific
+		renderer := NewRenderer()
+		e := El("div").A("g-bind:class", "somevalue").A("g-class", "specific-class")
+		ctx := &Context{}
+		ctx.Push("somevalue", "style1")
+		ctx.Push("specific-class", "style2")
+		res := renderer.Render(e, ctx)
+
+		AssertElementCount(t, res, 1)
+
+		AssertAttributeNotPresent(t, res[0], "g-bind:class")
+		AssertAttributeNotPresent(t, res[0], "g-class")
+		// g-class is additive
+		AssertAttribute(t, res[0], "class", "style1 style2")
+	})
+}
