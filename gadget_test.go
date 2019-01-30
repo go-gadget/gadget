@@ -1,8 +1,11 @@
 package gadget
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
 
@@ -464,3 +467,57 @@ func TestComponentArgs(t *testing.T) {
 		}
 	})
 }
+
+func TestForBindComponent(t *testing.T) {
+	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+		tb := NewTestBridge()
+		g := NewGadget(tb)
+		ChildBuilder := MakeDummyFactory(
+			`<b g-value="val"></b>`,
+			nil,
+			[]string{"val"},
+		)
+		component := g.BuildComponent(MakeDummyFactory(
+			`<div><p g-for="IntArrayVal"><test-child ::val="_"></test-child></p></div>`,
+			map[string]Builder{"test-child": ChildBuilder},
+			nil,
+		))
+		g.Mount(component, nil)
+		return g, tb, component
+	}
+
+	t.Run("Test passing _ to val to child", func(t *testing.T) {
+		g, _, component := SetupTestGadget()
+		component.RawSetValue("IntArrayVal", []int{1, 2, 3})
+		g.SingleLoop()
+
+		if len(g.Mounts) != 4 {
+			t.Errorf("Expected 4 mounted component, found %d", len(g.Mounts))
+		}
+		j.J(g.Mounts[0].Component.UnexecutedTree.ToString())
+		j.J(g.Mounts[0].Component.ExecutedTree.ToString())
+		j.J(g.Mounts[1].Component.ExecutedTree.ToString())
+
+		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
+		if c := strings.Count(rendered, "<test-child"); c != 3 {
+			t.Errorf("Did not get expected number of components, got %d", c)
+		}
+
+		ids := make(map[vtree.ElementID]bool)
+		for i := 1; i < 4; i++ {
+			e := g.Mounts[i].Component.ExecutedTree
+			text := e.Children[0].(*vtree.Text).Text
+			ids[e.ID] = true
+
+			if text != strconv.Itoa(i) {
+				t.Errorf("Did not get expected rendered tree, got %s", text)
+			}
+		}
+
+		if len(ids) != 3 {
+			t.Errorf("Expected three distinct id's, got %v", ids)
+		}
+	})
+}
+
+// nested loop using, e.g., [][]string

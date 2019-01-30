@@ -1,6 +1,7 @@
 package vtree
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -58,6 +59,7 @@ type Node interface {
 	ToString() string
 	Equals(Node) bool
 	Clone() Node
+	DeepClone(ElementID) Node
 }
 
 type callable func()
@@ -91,6 +93,11 @@ func (t *Text) ToString() string {
 }
 
 func (t *Text) Clone() Node {
+	// XXX Needs test LHF
+	return &Text{t.ID, t.Text}
+}
+
+func (t *Text) DeepClone(ElementID) Node {
 	// XXX Needs test LHF
 	return &Text{t.ID, t.Text}
 }
@@ -132,6 +139,25 @@ func (el *Element) Clone() Node {
 		Attributes: attrClone,
 		Handlers:   el.Handlers,
 		Children:   el.Children}
+}
+
+func (el *Element) DeepClone(newID ElementID) Node {
+	// XXX needs test
+	elClone := el.Clone().(*Element)
+
+	elClone.ID = newID
+
+	var childrenClones NodeList
+
+	for _, c := range elClone.Children {
+		cClone := c.DeepClone(ElementID(fmt.Sprintf("%s-%s", newID, c.GetID())))
+
+		childrenClones = append(childrenClones, cClone)
+	}
+
+	elClone.Children = childrenClones
+
+	return elClone
 }
 
 func (el *Element) GetID() ElementID {
@@ -181,6 +207,7 @@ func (el *Element) C(child ...Node) *Element {
 // not used. Perhaps replace with string_bridge?
 func (el *Element) ToString() string {
 	res := "<" + el.Type
+	res += fmt.Sprintf(` data-ID="%s"`, el.GetID())
 
 	for k, v := range el.Attributes {
 		res += " " + k + "=\"" + v + "\""

@@ -57,13 +57,11 @@ func (r *Renderer) RenderFor(e *Element, name string, context *Context) (result 
 
 	// must be an array of something
 	// field.Kind is any of reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+	delete(e.Attributes, "g-for")
 	for i := 0; i < value.Len(); i++ {
 		m := context.Mark()
 		context.PushValue("_", value.Index(i))
-		clone := e.Clone().(*Element)
-		// "key"
-		clone.ID = ElementID(fmt.Sprintf("%s-%d", clone.ID, i))
-		delete(clone.Attributes, "g-for")
+		clone := e.DeepClone(ElementID(fmt.Sprintf("%s-%d", e.ID, i))).(*Element)
 
 		res := r.Render(clone, context)
 		result = append(result, res...)
@@ -118,7 +116,7 @@ func (r *Renderer) RenderBind(e *Element, context *Context) {
 			attr := strings.SplitN(k, ":", 2)[1]
 			if value := context.Get(v); value != NotFound {
 				// For now attrs are always strings XXX
-				e.Attributes[attr] = value.String()
+				e.Attributes[attr] = fmt.Sprint(value)
 			}
 			delete(e.Attributes, k)
 		}
