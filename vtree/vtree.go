@@ -205,9 +205,11 @@ func (el *Element) C(child ...Node) *Element {
 }
 
 // not used. Perhaps replace with string_bridge?
-func (el *Element) ToString() string {
+func (el *Element) toString(withID bool) string {
 	res := "<" + el.Type
-	res += fmt.Sprintf(` data-ID="%s"`, el.GetID())
+	if withID {
+		res += fmt.Sprintf(` data-ID="%s"`, el.GetID())
+	}
 
 	for k, v := range el.Attributes {
 		res += " " + k + "=\"" + v + "\""
@@ -216,9 +218,21 @@ func (el *Element) ToString() string {
 	res += ">"
 
 	for _, c := range el.Children {
-		res += c.ToString()
+		if e, ok := c.(*Element); ok {
+			res += e.toString(withID)
+		} else {
+			res += c.ToString()
+		}
 	}
 	res += "</" + el.Type + ">"
 
 	return res
+}
+
+func (el *Element) ToString() string {
+	return el.toString(false)
+}
+
+func (el *Element) ToStringExt() string {
+	return el.toString(true)
 }
