@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
 
@@ -494,9 +493,6 @@ func TestForBindComponent(t *testing.T) {
 		if len(g.Mounts) != 4 {
 			t.Errorf("Expected 4 mounted component, found %d", len(g.Mounts))
 		}
-		j.J(g.Mounts[0].Component.UnexecutedTree.ToString())
-		j.J(g.Mounts[0].Component.ExecutedTree.ToString())
-		j.J(g.Mounts[1].Component.ExecutedTree.ToString())
 
 		rendered := g.Mounts[0].Component.ExecutedTree.ToString()
 		if c := strings.Count(rendered, "<test-child"); c != 3 {
