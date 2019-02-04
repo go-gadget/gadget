@@ -44,7 +44,7 @@ func (r *Renderer) RenderIf(e *Element, name string, context *Context) bool {
 }
 
 // RenderFor handles g-for, duplicating the node for each iteration
-func (r *Renderer) RenderFor(e *Element, name string, context *Context) (result []*Element) {
+func (r *Renderer) RenderFor(e *Element, expression string, context *Context) (result []*Element) {
 	/*
 	 * The tag containing the g-for will be duplicated,
 	 * so effectively this can return nil, one or multiple
@@ -52,7 +52,18 @@ func (r *Renderer) RenderFor(e *Element, name string, context *Context) (result 
 	 * the start tag.
 	 *
 	 * Also: set key / id
+	 *
+	 * Syntax:
+	 * g-for="variable" - iterates over variable, assings to _
+	 * g-for="variable in variable" - iterates over last variable, assigns to first
 	 */
+	name := expression
+	assign := "_"
+	if strings.Contains(expression, " in ") {
+		parts := strings.Split(expression, " in ")
+		assign = strings.Trim(parts[0], " ")
+		name = strings.Trim(parts[1], " ")
+	}
 	value := context.Get(name) // XXX Check NotFound
 
 	// must be an array of something
@@ -60,7 +71,7 @@ func (r *Renderer) RenderFor(e *Element, name string, context *Context) (result 
 	delete(e.Attributes, "g-for")
 	for i := 0; i < value.Len(); i++ {
 		m := context.Mark()
-		context.PushValue("_", value.Index(i))
+		context.PushValue(assign, value.Index(i))
 		clone := e.DeepClone(ElementID(fmt.Sprintf("%s-%d", e.ID, i))).(*Element)
 
 		res := r.Render(clone, context)
