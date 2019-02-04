@@ -182,8 +182,6 @@ func (b *DomBridge) Add(n Node, parent Node) error {
 
 	e := b.createElement(n)
 
-	// fmt.Printf("Creating %s id %s parent %v\n", el.Type, el.ID, p)
-
 	p.Call("appendChild", e)
 
 	for _, c := range el.Children {

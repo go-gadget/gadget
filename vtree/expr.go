@@ -64,6 +64,7 @@ func (r *Renderer) RenderFor(e *Element, expression string, context *Context) (r
 		assign = strings.Trim(parts[0], " ")
 		name = strings.Trim(parts[1], " ")
 	}
+
 	value := context.Get(name) // XXX Check NotFound
 
 	// must be an array of something
@@ -145,14 +146,13 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 
 	// a node can have multiple expressions, so immediate return isn't
 	// entirely correct
+	clone := e.Clone().(*Element)
 
-	if gValue, ok := e.Attributes["g-for"]; ok {
+	if gValue, ok := clone.Attributes["g-for"]; ok {
 		// g-for will recurse on itself for each itertion, which will
 		// deal with g-value, g-if, g-class, etc.
-		return r.RenderFor(e, gValue, context)
+		return r.RenderFor(clone, gValue, context)
 	}
-
-	clone := e.Clone().(*Element)
 
 	if gValue, ok := e.Attributes["g-if"]; ok {
 		if !r.RenderIf(clone, gValue, context) {

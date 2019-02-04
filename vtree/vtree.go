@@ -193,7 +193,10 @@ func (el *Element) T(text string) *Element {
 	// An element holding text probably shouldn't have children?
 	// Or should text itself also be an element?
 	t := &Text{Text: text}
-	t.ID = ElementID(string(el.ID) + "-" + strconv.Itoa(len(el.Children)))
+	// Generate id's based on parent/position, but avoid possibly clashing,
+	// so add 't' to id no mark it as text.
+	// If we didn't match id's, it would just be seen as a text change.
+	t.ID = ElementID(string(el.ID) + "t" + strconv.Itoa(len(el.Children)))
 	el.C(t)
 	return el
 }
