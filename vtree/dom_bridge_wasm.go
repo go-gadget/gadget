@@ -46,8 +46,6 @@ func (b *DomBridge) createElement(node Node) js.Value {
 		e.Set(attr, value)
 	}
 
-	e.Set("id", string(el.ID)) // Get rid of this XXX
-
 	b.HandleSpecialAttributes(node, el.Attributes)
 	return e
 }
@@ -156,7 +154,7 @@ func (b *DomBridge) Replace(old Node, new Node) error {
 
 	p.Call("replaceChild", oldE, newE)
 
-	b.Delete(old.GetID())
+	delete(b.Nodes, old.GetID())
 
 	return nil
 }
@@ -202,7 +200,7 @@ func (b *DomBridge) Delete(el Node) error {
 	p := child.Get("parentElement")
 
 	p.Call("removeChild", child)
-	b.Delete(el.GetID())
+	delete(b.Nodes, el.GetID())
 
 	return nil
 }
