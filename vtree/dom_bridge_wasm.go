@@ -46,8 +46,6 @@ func (b *DomBridge) createElement(node Node) js.Value {
 		e.Set(attr, value)
 	}
 
-	e.Set("id", string(el.ID))
-
 	b.HandleSpecialAttributes(node, el.Attributes)
 	return e
 }
@@ -148,9 +146,16 @@ func (b *DomBridge) Replace(old Node, new Node) error {
 	// replace == delete, add
 	oldE := b.Nodes[old.GetID()]
 	newE := b.createElement(new)
+	b.Nodes[new.GetID()] = newE
+
+	// XXX Avoid this call by storing parent on Nodes?
+	// -> p := b.Nodes[old.Parent.GetID()]
 	p := oldE.Get("parentElement")
 
 	p.Call("replaceChild", oldE, newE)
+
+	delete(b.Nodes, old.GetID())
+
 	return nil
 }
 
@@ -182,8 +187,6 @@ func (b *DomBridge) Add(n Node, parent Node) error {
 
 	e := b.createElement(n)
 
-	// fmt.Printf("Creating %s id %s parent %v\n", el.Type, el.ID, p)
-
 	p.Call("appendChild", e)
 
 	for _, c := range el.Children {
@@ -197,6 +200,7 @@ func (b *DomBridge) Delete(el Node) error {
 	p := child.Get("parentElement")
 
 	p.Call("removeChild", child)
+	delete(b.Nodes, el.GetID())
 
 	return nil
 }

@@ -259,6 +259,21 @@ func TestNestedFor(t *testing.T) {
 	}
 }
 
+func TestNestedForAssign(t *testing.T) {
+	renderer := NewRenderer()
+	tpl := `<div><div g-for="parts in stuff"><p g-for="part in parts"><b g-value="part">x</b></p></div></div>`
+	tree := Parse(tpl)
+	ctx := &Context{}
+	ctx.Push("stuff", [][]string{[]string{"Hello", "World"}, []string{"Go", "Go", "Gadget!"}, []string{"Bye now"}})
+
+	res := renderer.Render(tree, ctx)
+
+	expected := `<div><div><p><b>Hello</b></p><p><b>World</b></p></div><div><p><b>Go</b></p><p><b>Go</b></p><p><b>Gadget!</b></p></div><div><p><b>Bye now</b></p></div></div>`
+	if r := res[0].ToString(); r != expected {
+		t.Errorf("Didn't get expected result, got %s", r)
+	}
+}
+
 func TestBind(t *testing.T) {
 	t.Run("Test regular case, long syntax", func(t *testing.T) {
 		renderer := NewRenderer()
