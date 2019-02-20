@@ -19,6 +19,7 @@ type Gadget struct {
 	Bridge vtree.Subject
 	Queue  []Action
 	Wakeup chan bool
+	App    *WrappedComponent
 }
 
 // Is a WrappedComponent actually a Mounted component?
@@ -50,10 +51,12 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 
 type Builder func() Component
 
+// Move to component? NewWrappedComponent?
 func (g *Gadget) BuildComponent(b Builder) *WrappedComponent {
 	comp := &WrappedComponent{Comp: b(), Update: nil}
 	comp.Comp.Init()
 	comp.UnexecutedTree = vtree.Parse(comp.Comp.Template())
+	comp.Gadget = g
 	return comp
 }
 
@@ -104,6 +107,11 @@ func (g *Gadget) SingleLoop() {
 		work.Run()
 	}
 
+	// Gadget no longer has mounts - it has one main
+	// App component (possibly using a default)
+
+	// -> changes := g.App.BuildDiff()
+
 	// Newly created components are added to the end of g.Mounts,
 	// so it can grow. Newly added components also need to be handled
 	for i := 0; i < len(g.Mounts); i++ {
@@ -135,6 +143,8 @@ func (g *Gadget) SingleLoop() {
 		}
 		changes.ApplyChanges(g.Bridge)
 	}
+
+	// Recursively call components for cleanup
 
 	// Remove mountpoints that were marked for deletion
 	// (make this a flag in stead?)

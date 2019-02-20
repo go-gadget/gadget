@@ -110,6 +110,8 @@ type WrappedComponent struct {
 	UnexecutedTree *vtree.Element
 	ExecutedTree   *vtree.Element
 	Update         chan Action
+	Mounts         []*Mount
+	Gadget         *Gadget
 }
 
 func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
@@ -210,8 +212,66 @@ func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer, props []*vtr
 	return tree
 }
 
-func (g *WrappedComponent) BuildDiff(handler vtree.ComponentRenderer, props []*vtree.Variable) (res vtree.ChangeSet) {
-	tree := g.Execute(handler, props)
+func (g *WrappedComponent) Mount(c *WrappedComponent, point *vtree.Element) *Mount {
+	// Not sure if this really is mounting
+	// probably needs lock
+
+	// store node where mounted (or nil)
+	mount := &Mount{Component: c, Point: point, Props: nil, ToBeRemoved: false}
+	g.Mounts = append(g.Mounts, mount)
+	c.Update = g.Update
+	// c.Mounted() hook?
+	return mount
+}
+
+func (g *WrappedComponent) PropsForComponent(c Component, componentElement *vtree.Element, context *vtree.Context) []*vtree.Variable {
+	var props []*vtree.Variable
+
+	for _, propName := range c.Props() {
+		val, ok := componentElement.Attributes[propName]
+		if ok {
+			props = append(props, &vtree.Variable{propName, reflect.ValueOf(val)})
+		}
+	}
+
+	return props
+}
+
+/*
+ * Called if a component tag is encountered (e.g. <my-comp>)
+ *
+ * Either the component is already mounted -> find it and find its variables, or
+ * it needs to be created. Find it, create instance, etc.
+ */
+// rename to Render?
+func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.Variable) (res vtree.ChangeSet) {
+	// This is inline so it can append to res
+
+	ComponentHandler := func(componentElement *vtree.Element, context *vtree.Context) {
+		// This can be optimized using a map. But since maps are not ordered,
+		// we can't combine with g.Components
+		for _, m := range g.Mounts {
+			if m.HasComponent(componentElement) {
+				m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
+				changes := m.Component.BuildDiff(nil, m.Props)
+				res = append(res, changes...)
+				return
+			}
+		}
+
+		// Build the component, if possible
+		childcomps := g.Comp.Components()
+		if builder, ok := childcomps[componentElement.Type]; ok {
+			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
+			wc := g.Gadget.BuildComponent(builder)
+			m := g.Mount(wc, componentElement)
+			m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
+			changes := m.Component.BuildDiff(nil, m.Props)
+			res = append(res, changes...)
+		}
+	}
+
+	tree := g.Execute(ComponentHandler, props)
 
 	if g.ExecutedTree == nil {
 		res = vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
