@@ -2,6 +2,8 @@ package vtree
 
 /*
  * Subject is the subject of changes, e.g. a DOM
+ * It's broader than that now - it syncs state, gets location,
+ * basically the bridge to the other side
  */
 type Subject interface {
 	AttributeChange(Target Node, Adds, Deletes, Updates Attributes) error
@@ -10,6 +12,7 @@ type Subject interface {
 	Delete(el Node) error
 	InsertBefore(before Node, after Node) error
 	SyncState(from Node)
+	GetLocation() string
 }
 
 /* Change should be on the 'other side' domtree, not on a local

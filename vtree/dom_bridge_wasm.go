@@ -213,3 +213,7 @@ func (b *DomBridge) InsertBefore(before Node, after Node) error {
 	p.Call("insertBefore", nBefore, nAfter)
 	return nil
 }
+
+func (b *DomBridge) GetLocation() string {
+	return b.Doc.Get("location").String()
+}

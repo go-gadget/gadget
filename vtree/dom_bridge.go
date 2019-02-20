@@ -18,6 +18,10 @@ func init() {
 
 func (b *DummyBridge) SyncState(From Node) {}
 
+func (b *DummyBridge) GetLocation() string {
+	return "/"
+}
+
 func (b *DummyBridge) AttributeChange(Target Node, Adds, Deletes, Updates Attributes) error {
 	return nil
 }

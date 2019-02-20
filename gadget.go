@@ -1,6 +1,7 @@
 package gadget
 
 import (
+	"net/url"
 	"reflect"
 
 	"github.com/go-gadget/gadget/j"
@@ -19,6 +20,7 @@ type Gadget struct {
 	Bridge vtree.Subject
 	Queue  []Action
 	Wakeup chan bool
+	Routes []Route
 }
 
 // Is a WrappedComponent actually a Mounted component?
@@ -49,6 +51,10 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 }
 
 type Builder func() Component
+
+func (g *Gadget) Router(routes []Route) {
+	g.Routes = routes
+}
 
 func (g *Gadget) BuildComponent(b Builder) *WrappedComponent {
 	comp := &WrappedComponent{Comp: b(), Update: nil}
@@ -82,6 +88,21 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
+func (g *Gadget) BuildMountsFromRoute() {
+	// get location, somehow
+	// map location to number of components
+	// set them in g.Mounts
+	path := g.Bridge.GetLocation()
+	if url, err := url.Parse(path); err == nil {
+		j.J(url.Path)
+		for _, r := range g.Routes {
+			if r.Path == url.Path {
+				c := g.BuildComponent(r.Component)
+				g.Mount(c, nil)
+			}
+		}
+	}
+}
 func (g *Gadget) SingleLoop() {
 
 	for len(g.Queue) > 0 {
@@ -102,6 +123,10 @@ func (g *Gadget) SingleLoop() {
 		}
 
 		work.Run()
+	}
+
+	if len(g.Routes) > 0 {
+		g.BuildMountsFromRoute()
 	}
 
 	// Newly created components are added to the end of g.Mounts,
