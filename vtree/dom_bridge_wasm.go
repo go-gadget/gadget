@@ -199,6 +199,7 @@ func (b *DomBridge) Delete(el Node) error {
 	child := b.Nodes[el.GetID()]
 	p := child.Get("parentElement")
 
+	j.J("REMOVE", child, p)
 	p.Call("removeChild", child)
 	delete(b.Nodes, el.GetID())
 

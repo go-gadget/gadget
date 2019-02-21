@@ -250,10 +250,13 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 	ComponentHandler := func(componentElement *vtree.Element, context *vtree.Context) {
 		// This can be optimized using a map. But since maps are not ordered,
 		// we can't combine with g.Components
+		j.J("CHANDLER", componentElement.Type)
 		for _, m := range g.Mounts {
+			j.J("Component BuildDiff mount", m)
 			if m.HasComponent(componentElement) {
 				m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
 				changes := m.Component.BuildDiff(nil, m.Props)
+				j.J("ADD RES 1", len(changes))
 				res = append(res, changes...)
 				return
 			}
@@ -262,23 +265,60 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 		// Build the component, if possible
 		childcomps := g.Comp.Components()
 		if builder, ok := childcomps[componentElement.Type]; ok {
+			j.J("Creating it", componentElement.Type)
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
 			wc := g.Gadget.BuildComponent(builder)
 			m := g.Mount(wc, componentElement)
 			m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
 			changes := m.Component.BuildDiff(nil, m.Props)
+			j.J("ADD RES 2", len(changes))
 			res = append(res, changes...)
 		}
 	}
 
+	j.J("Before exec")
 	tree := g.Execute(ComponentHandler, props)
+	j.J("After exec")
 
 	if g.ExecutedTree == nil {
-		res = vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
+		res1 := vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
+		res = append(res, res1...)
 	} else {
-		res = vtree.Diff(g.ExecutedTree, tree)
+		res1 := vtree.Diff(g.ExecutedTree, tree)
+		for _, ch := range res1 {
+			if dch, ok := ch.(*vtree.DeleteChange); ok {
+				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
+					for _, m := range g.Mounts {
+						if m.HasComponent(el) {
+							m.ToBeRemoved = true
+							j.J("**** COMPONENT REMOVE", el.Type)
+						}
+					}
+				}
+			}
+		}
+		// Why is this specifically?
+		for _, ch := range res1 {
+			if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
+				j.J("NO PARENT", ch)
+				// ach.Parent = p
+			}
+		}
+		j.J("ADD RES 3", len(res1))
+		res = append(res, res1...)
 	}
+	var FilteredMounts []*Mount
+	for _, m := range g.Mounts {
+		if m.ToBeRemoved {
+			continue
+			// call some hook?
+		}
+		FilteredMounts = append(FilteredMounts, m)
+	}
+	g.Mounts = FilteredMounts
 	g.ExecutedTree = tree
+
+	j.J("RETURN RES", len(res))
 	return res
 }
 

@@ -141,6 +141,8 @@ func (g *Gadget) SingleLoop() {
 				}
 			}
 		}
+
+		j.J("Changes end result", len(changes))
 		changes.ApplyChanges(g.Bridge)
 	}
 
