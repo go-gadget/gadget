@@ -217,7 +217,7 @@ func (g *WrappedComponent) Mount(c *WrappedComponent, point *vtree.Element) *Mou
 	// probably needs lock
 
 	// store node where mounted (or nil)
-	mount := &Mount{Component: c, Point: point, Props: nil, ToBeRemoved: false}
+	mount := &Mount{Component: c, Point: point, ToBeRemoved: false}
 	g.Mounts = append(g.Mounts, mount)
 	c.Update = g.Update
 	// c.Mounted() hook?
@@ -255,8 +255,8 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 		for _, m := range g.Mounts {
 			j.J("Component BuildDiff mount", m)
 			if m.HasComponent(componentElement) {
-				m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
-				changes := m.Component.BuildDiff(m.Props)
+				Props := g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
+				changes := m.Component.BuildDiff(Props)
 				j.J("ADD RES 1", len(changes))
 				// res = append(res, changes...)
 				cs = append(cs, changes)
@@ -271,8 +271,8 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
 			wc := g.Gadget.BuildComponent(builder)
 			m := g.Mount(wc, componentElement)
-			m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
-			changes := m.Component.BuildDiff(m.Props)
+			Props := g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
+			changes := m.Component.BuildDiff(Props)
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
 					j.J("NO PARENT", ch)

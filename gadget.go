@@ -22,12 +22,8 @@ type Gadget struct {
 // Is a WrappedComponent actually a Mounted component?
 // Is a Component actually (interface) Mountable?
 type Mount struct {
-	Component *WrappedComponent
-	Point     *vtree.Element
-	// Context is now (temp) stored on Mount which is ugly.
-	// In stead, create separate queue of mounts to handle with their
-	// contexts?
-	Props       []*vtree.Variable
+	Component   *WrappedComponent
+	Point       *vtree.Element
 	ToBeRemoved bool
 }
 
