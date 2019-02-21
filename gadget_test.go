@@ -59,6 +59,11 @@ func (t *TestBridge) Reset() {
 	t.InsertBeforeCount = 0
 	t.SyncStateCount = 0
 }
+
+func (t *TestBridge) GetLocation() string {
+	return "/"
+}
+
 func (t *TestBridge) AttributeChange(Target vtree.Node, Adds, Deletes, Updates vtree.Attributes) error {
 	t.AttributeChangeCount++
 	return nil
