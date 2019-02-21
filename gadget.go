@@ -134,6 +134,7 @@ func (g *Gadget) SingleLoop() {
 			}
 		}
 
+		// This will add the rendered component tree to the component element
 		if p != nil {
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
