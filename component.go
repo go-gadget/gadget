@@ -246,6 +246,7 @@ func (g *WrappedComponent) PropsForComponent(c Component, componentElement *vtre
 // rename to Render?
 func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.Variable) (res vtree.ChangeSet) {
 	// This is inline so it can append to res
+	var cs []vtree.ChangeSet
 
 	ComponentHandler := func(componentElement *vtree.Element, context *vtree.Context) {
 		// This can be optimized using a map. But since maps are not ordered,
@@ -257,7 +258,8 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 				m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
 				changes := m.Component.BuildDiff(nil, m.Props)
 				j.J("ADD RES 1", len(changes))
-				res = append(res, changes...)
+				// res = append(res, changes...)
+				cs = append(cs, changes)
 				return
 			}
 		}
@@ -271,8 +273,17 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 			m := g.Mount(wc, componentElement)
 			m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
 			changes := m.Component.BuildDiff(nil, m.Props)
+			for _, ch := range changes {
+				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
+					j.J("NO PARENT", ch)
+					j.J(m.Point)
+					j.J(componentElement)
+					ach.Parent = m.Point
+				}
+			}
 			j.J("ADD RES 2", len(changes))
-			res = append(res, changes...)
+			// res = append(res, changes...)
+			cs = append(cs, changes)
 		}
 	}
 
@@ -282,7 +293,8 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 
 	if g.ExecutedTree == nil {
 		res1 := vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
-		res = append(res, res1...)
+		// res = append(res, res1...)
+		cs = append(cs, res1)
 	} else {
 		res1 := vtree.Diff(g.ExecutedTree, tree)
 		for _, ch := range res1 {
@@ -298,14 +310,9 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 			}
 		}
 		// Why is this specifically?
-		for _, ch := range res1 {
-			if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
-				j.J("NO PARENT", ch)
-				// ach.Parent = p
-			}
-		}
 		j.J("ADD RES 3", len(res1))
-		res = append(res, res1...)
+		// res = append(res, res1...)
+		cs = append(cs, res1)
 	}
 	var FilteredMounts []*Mount
 	for _, m := range g.Mounts {
@@ -318,6 +325,10 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 	g.Mounts = FilteredMounts
 	g.ExecutedTree = tree
 
+	// reverse over cs, build res
+	for i := len(cs) - 1; i >= 0; i-- {
+		res = append(res, cs[i]...)
+	}
 	j.J("RETURN RES", len(res))
 	return res
 }
