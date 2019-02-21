@@ -223,6 +223,7 @@ func (g *WrappedComponent) Mount(c *WrappedComponent, point *vtree.Element) *Mou
 	return mount
 }
 
+// ExtractProps checks which props a component accepts and fetches these from the elements attributes
 func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtree.Variable {
 	var props []*vtree.Variable
 
@@ -243,10 +244,11 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
  */
 // rename to Render?
 func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeSet) {
-	// This is inline so it can append to res
+
+	// collect changesets
 	var cs []vtree.ChangeSet
 
-	ComponentHandler := func(componentElement *vtree.Element, context *vtree.Context) {
+	ComponentHandler := func(componentElement *vtree.Element) {
 		for _, m := range g.Mounts {
 			if m.HasComponent(componentElement) {
 				Props := m.Component.ExtractProps(componentElement)

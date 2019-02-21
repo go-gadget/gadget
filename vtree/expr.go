@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type ComponentRenderer func(*Element, *Context)
+type ComponentRenderer func(*Element)
 
 type Renderer struct {
 	Handler ComponentRenderer
@@ -186,7 +186,7 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 			// Alternatively, store copy of context on element, do
 			// separate execute
 			m := context.Mark()
-			r.Handler(clone, context)
+			r.Handler(clone)
 			context.Pop(m)
 		}
 	}
