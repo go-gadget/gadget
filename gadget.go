@@ -19,21 +19,6 @@ type Gadget struct {
 	App    *WrappedComponent
 }
 
-// Is a WrappedComponent actually a Mounted component?
-// Is a Component actually (interface) Mountable?
-type Mount struct {
-	Component   *WrappedComponent
-	Point       *vtree.Element
-	ToBeRemoved bool
-}
-
-func (m *Mount) HasComponent(componentElement *vtree.Element) bool {
-	if m.Point == nil {
-		return false
-	}
-	return m.Point.Equals(componentElement)
-}
-
 func NewGadget(bridge vtree.Subject) *Gadget {
 	return &Gadget{
 		Chan:   make(chan Action),
