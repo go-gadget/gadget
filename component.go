@@ -224,12 +224,11 @@ func (g *WrappedComponent) Mount(c *WrappedComponent, point *vtree.Element) *Mou
 	return mount
 }
 
-func (g *WrappedComponent) PropsForComponent(c Component, componentElement *vtree.Element, context *vtree.Context) []*vtree.Variable {
+func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtree.Variable {
 	var props []*vtree.Variable
 
-	for _, propName := range c.Props() {
-		val, ok := componentElement.Attributes[propName]
-		if ok {
+	for _, propName := range g.Comp.Props() {
+		if val, ok := componentElement.Attributes[propName]; ok {
 			props = append(props, &vtree.Variable{propName, reflect.ValueOf(val)})
 		}
 	}
@@ -249,13 +248,11 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 	var cs []vtree.ChangeSet
 
 	ComponentHandler := func(componentElement *vtree.Element, context *vtree.Context) {
-		// This can be optimized using a map. But since maps are not ordered,
-		// we can't combine with g.Components
 		j.J("CHANDLER", componentElement.Type)
 		for _, m := range g.Mounts {
 			j.J("Component BuildDiff mount", m)
 			if m.HasComponent(componentElement) {
-				Props := g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
+				Props := m.Component.ExtractProps(componentElement)
 				changes := m.Component.BuildDiff(Props)
 				j.J("ADD RES 1", len(changes))
 				// res = append(res, changes...)
@@ -271,7 +268,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
 			wc := g.Gadget.BuildComponent(builder)
 			m := g.Mount(wc, componentElement)
-			Props := g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
+			Props := m.Component.ExtractProps(componentElement)
 			changes := m.Component.BuildDiff(Props)
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
