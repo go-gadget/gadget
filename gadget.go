@@ -1,8 +1,6 @@
 package gadget
 
 import (
-	"reflect"
-
 	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
@@ -119,7 +117,7 @@ func (g *Gadget) SingleLoop() {
 
 		c := m.Component
 		p := m.Point
-		changes := c.BuildDiff(g.ComponentHandler(c), m.Props)
+		changes := c.BuildDiff(m.Props)
 
 		// Check if diff shows components are removed. If so, mark them for removal
 		for _, ch := range changes {
@@ -196,42 +194,5 @@ func (g *Gadget) MainLoop() {
 		g.SingleLoop()
 		<-g.Wakeup
 		j.J("Sleeping until there's some work")
-	}
-}
-
-func (g *Gadget) PropsForComponent(c Component, componentElement *vtree.Element, context *vtree.Context) []*vtree.Variable {
-	var props []*vtree.Variable
-
-	for _, propName := range c.Props() {
-		val, ok := componentElement.Attributes[propName]
-		if ok {
-			props = append(props, &vtree.Variable{propName, reflect.ValueOf(val)})
-		}
-	}
-
-	return props
-}
-
-// ComponentHandler is the callback called when executing on components.
-func (g *Gadget) ComponentHandler(c *WrappedComponent) vtree.ComponentRenderer {
-	return func(componentElement *vtree.Element, context *vtree.Context) {
-
-		// This can be optimized using a map. But since maps are not ordered,
-		// we can't combine with g.Components
-		for _, m := range g.Mounts {
-			if m.HasComponent(componentElement) {
-				m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
-				return
-			}
-		}
-
-		// Build the component, if possible
-		childcomps := c.Comp.Components()
-		if builder, ok := childcomps[componentElement.Type]; ok {
-			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
-			wc := g.BuildComponent(builder)
-			m := g.Mount(wc, componentElement)
-			m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
-		}
 	}
 }

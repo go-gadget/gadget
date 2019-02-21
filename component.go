@@ -244,7 +244,7 @@ func (g *WrappedComponent) PropsForComponent(c Component, componentElement *vtre
  * it needs to be created. Find it, create instance, etc.
  */
 // rename to Render?
-func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.Variable) (res vtree.ChangeSet) {
+func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeSet) {
 	// This is inline so it can append to res
 	var cs []vtree.ChangeSet
 
@@ -256,7 +256,7 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 			j.J("Component BuildDiff mount", m)
 			if m.HasComponent(componentElement) {
 				m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
-				changes := m.Component.BuildDiff(nil, m.Props)
+				changes := m.Component.BuildDiff(m.Props)
 				j.J("ADD RES 1", len(changes))
 				// res = append(res, changes...)
 				cs = append(cs, changes)
@@ -272,7 +272,7 @@ func (g *WrappedComponent) BuildDiff(_ vtree.ComponentRenderer, props []*vtree.V
 			wc := g.Gadget.BuildComponent(builder)
 			m := g.Mount(wc, componentElement)
 			m.Props = g.PropsForComponent(m.Component.Comp, componentElement, context) // XXX Yuck
-			changes := m.Component.BuildDiff(nil, m.Props)
+			changes := m.Component.BuildDiff(m.Props)
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
 					j.J("NO PARENT", ch)
