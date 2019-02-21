@@ -248,14 +248,10 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 	var cs []vtree.ChangeSet
 
 	ComponentHandler := func(componentElement *vtree.Element, context *vtree.Context) {
-		j.J("CHANDLER", componentElement.Type)
 		for _, m := range g.Mounts {
-			j.J("Component BuildDiff mount", m)
 			if m.HasComponent(componentElement) {
 				Props := m.Component.ExtractProps(componentElement)
 				changes := m.Component.BuildDiff(Props)
-				j.J("ADD RES 1", len(changes))
-				// res = append(res, changes...)
 				cs = append(cs, changes)
 				return
 			}
@@ -264,7 +260,6 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 		// Build the component, if possible
 		childcomps := g.Comp.Components()
 		if builder, ok := childcomps[componentElement.Type]; ok {
-			j.J("Creating it", componentElement.Type)
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
 			wc := g.Gadget.BuildComponent(builder)
 			m := g.Mount(wc, componentElement)
@@ -272,25 +267,17 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 			changes := m.Component.BuildDiff(Props)
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
-					j.J("NO PARENT", ch)
-					j.J(m.Point)
-					j.J(componentElement)
 					ach.Parent = m.Point
 				}
 			}
-			j.J("ADD RES 2", len(changes))
-			// res = append(res, changes...)
 			cs = append(cs, changes)
 		}
 	}
 
-	j.J("Before exec")
 	tree := g.Execute(ComponentHandler, props)
-	j.J("After exec")
 
 	if g.ExecutedTree == nil {
 		res1 := vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
-		// res = append(res, res1...)
 		cs = append(cs, res1)
 	} else {
 		res1 := vtree.Diff(g.ExecutedTree, tree)
@@ -300,15 +287,11 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 					for _, m := range g.Mounts {
 						if m.HasComponent(el) {
 							m.ToBeRemoved = true
-							j.J("**** COMPONENT REMOVE", el.Type)
 						}
 					}
 				}
 			}
 		}
-		// Why is this specifically?
-		j.J("ADD RES 3", len(res1))
-		// res = append(res, res1...)
 		cs = append(cs, res1)
 	}
 	var FilteredMounts []*Mount
