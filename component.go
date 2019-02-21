@@ -211,8 +211,8 @@ func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer, props []*vtr
 	return tree
 }
 
+// Mount a comonent somewhere within this component, and store it.
 func (g *WrappedComponent) Mount(c *WrappedComponent, point *vtree.Element) *Mount {
-	// Not sure if this really is mounting
 	// probably needs lock
 
 	// store node where mounted (or nil)
@@ -229,7 +229,7 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 
 	for _, propName := range g.Comp.Props() {
 		if val, ok := componentElement.Attributes[propName]; ok {
-			props = append(props, &vtree.Variable{propName, reflect.ValueOf(val)})
+			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
 		}
 	}
 
@@ -310,7 +310,6 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 	for i := len(cs) - 1; i >= 0; i-- {
 		res = append(res, cs[i]...)
 	}
-	j.J("RETURN RES", len(res))
 	return res
 }
 
