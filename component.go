@@ -111,7 +111,6 @@ type WrappedComponent struct {
 	ExecutedTree   *vtree.Element
 	Update         chan Action
 	Mounts         []*Mount
-	Gadget         *Gadget
 }
 
 func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
@@ -261,7 +260,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 		childcomps := g.Comp.Components()
 		if builder, ok := childcomps[componentElement.Type]; ok {
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
-			wc := g.Gadget.BuildComponent(builder)
+			wc := NewComponent(builder)
 			m := g.Mount(wc, componentElement)
 			Props := m.Component.ExtractProps(componentElement)
 			changes := m.Component.BuildDiff(Props)
@@ -315,4 +314,11 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 
 func (g *WrappedComponent) HandleEvent(event string) {
 	g.Comp.Handlers()[event](g.Update)
+}
+
+func NewComponent(b Builder) *WrappedComponent {
+	comp := &WrappedComponent{Comp: b(), Update: nil}
+	comp.Comp.Init()
+	comp.UnexecutedTree = vtree.Parse(comp.Comp.Template())
+	return comp
 }

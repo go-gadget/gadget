@@ -27,16 +27,8 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 	}
 }
 
+// A Builder is anything that creates s Component
 type Builder func() Component
-
-// Move to component? NewWrappedComponent?
-func (g *Gadget) BuildComponent(b Builder) *WrappedComponent {
-	comp := &WrappedComponent{Comp: b(), Update: nil}
-	comp.Comp.Init()
-	comp.UnexecutedTree = vtree.Parse(comp.Comp.Template())
-	comp.Gadget = g
-	return comp
-}
 
 func (g *Gadget) Mount(c *WrappedComponent) {
 	g.App = c
