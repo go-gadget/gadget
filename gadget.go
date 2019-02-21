@@ -13,7 +13,6 @@ type Action interface {
 
 type Gadget struct {
 	Chan   chan Action
-	Mounts []*Mount
 	Bridge vtree.Subject
 	Queue  []Action
 	Wakeup chan bool
@@ -58,16 +57,9 @@ func (g *Gadget) BuildComponent(b Builder) *WrappedComponent {
 	return comp
 }
 
-func (g *Gadget) Mount(c *WrappedComponent, point *vtree.Element) *Mount {
-	// Not sure if this really is mounting
-	// probably needs lock
-
-	// store node where mounted (or nil)
-	mount := &Mount{Component: c, Point: point, Props: nil, ToBeRemoved: false}
-	g.Mounts = append(g.Mounts, mount)
+func (g *Gadget) Mount(c *WrappedComponent) {
+	g.App = c
 	c.Update = g.Chan
-	// c.Mounted() hook?
-	return mount
 }
 
 func (g *Gadget) SyncState(Tree vtree.Node) {
@@ -105,59 +97,9 @@ func (g *Gadget) SingleLoop() {
 		work.Run()
 	}
 
-	// Gadget no longer has mounts - it has one main
-	// App component (possibly using a default)
+	changes := g.App.BuildDiff(nil)
 
-	// -> changes := g.App.BuildDiff()
-
-	// Newly created components are added to the end of g.Mounts,
-	// so it can grow. Newly added components also need to be handled
-	for i := 0; i < len(g.Mounts); i++ {
-		m := g.Mounts[i]
-
-		c := m.Component
-		p := m.Point
-		changes := c.BuildDiff(m.Props)
-
-		// Check if diff shows components are removed. If so, mark them for removal
-		for _, ch := range changes {
-			if dch, ok := ch.(*vtree.DeleteChange); ok {
-				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
-					for _, m := range g.Mounts {
-						if m.HasComponent(el) {
-							m.ToBeRemoved = true
-						}
-					}
-				}
-			}
-		}
-
-		// This will add the rendered component tree to the component element
-		if p != nil {
-			for _, ch := range changes {
-				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
-					ach.Parent = p
-				}
-			}
-		}
-
-		j.J("Changes end result", len(changes))
-		changes.ApplyChanges(g.Bridge)
-	}
-
-	// Recursively call components for cleanup
-
-	// Remove mountpoints that were marked for deletion
-	// (make this a flag in stead?)
-	var FilteredMounts []*Mount
-	for _, m := range g.Mounts {
-		if m.ToBeRemoved {
-			continue
-			// call some hook?
-		}
-		FilteredMounts = append(FilteredMounts, m)
-	}
-	g.Mounts = FilteredMounts
+	changes.ApplyChanges(g.Bridge)
 
 }
 
