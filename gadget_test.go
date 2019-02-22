@@ -9,30 +9,17 @@ import (
 )
 
 type DummyComponent struct {
-	BaseComponent
-	DummyTemplate   string
-	DummyComponents map[string]Builder
-	DummyProps      []string
-	BoolVal         bool
-	IntArrayVal     []int
-	StringVal       string
-}
-
-func (d *DummyComponent) Props() []string {
-	return d.DummyProps
-}
-
-func (d *DummyComponent) Template() string {
-	return d.DummyTemplate
-}
-
-func (d *DummyComponent) Components() map[string]Builder {
-	return d.DummyComponents
+	GeneratedComponent
+	BoolVal     bool
+	IntArrayVal []int
+	StringVal   string
 }
 
 func MakeDummyFactory(Template string, Components map[string]Builder, Props []string) Builder {
 	return func() Component {
-		s := &DummyComponent{DummyTemplate: Template, DummyComponents: Components, DummyProps: Props}
+		s := &DummyComponent{
+			GeneratedComponent: GeneratedComponent{gTemplate: Template,
+				gComponents: Components, gProps: Props}}
 		s.SetupStorage(s)
 		return s
 	}

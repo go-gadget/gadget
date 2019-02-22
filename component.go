@@ -323,3 +323,37 @@ func NewComponent(b Builder) *WrappedComponent {
 	comp.UnexecutedTree = vtree.Parse(comp.Comp.Template())
 	return comp
 }
+
+// A GeneratedComponent is a component that's dynamically built, not declaratively
+type GeneratedComponent struct {
+	BaseComponent
+	gTemplate   string
+	gComponents map[string]Builder
+	gProps      []string
+}
+
+// Props returns the BC's props, if any
+func (g *GeneratedComponent) Props() []string {
+	return g.gProps
+}
+
+// Template returns the BC's Template, if any
+func (g *GeneratedComponent) Template() string {
+	return g.gTemplate
+}
+
+// Components returns the BC's Components, if any
+func (g *GeneratedComponent) Components() map[string]Builder {
+	return g.gComponents
+}
+
+// GenerateComponent generates a Component (Builder) based on the supplied arguments
+func GenerateComponent(Template string, Components map[string]Builder,
+	Props []string) Builder {
+	return func() Component {
+		s := &GeneratedComponent{gTemplate: Template, gComponents: Components,
+			gProps: Props}
+		s.SetupStorage(s)
+		return s
+	}
+}
