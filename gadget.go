@@ -27,6 +27,7 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 		Chan:   make(chan Action),
 		Bridge: bridge,
 		Wakeup: make(chan bool),
+		App:    NewComponent(GenerateComponent("<div><router-view></router-view></div>", nil, nil)),
 	}
 }
 
