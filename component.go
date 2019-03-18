@@ -277,12 +277,13 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 
 	tree := g.Execute(ComponentHandler, props)
 
+	var changes vtree.ChangeSet
+
 	if g.ExecutedTree == nil {
-		res1 := vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
-		cs = append(cs, res1)
+		changes = vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
 	} else {
-		res1 := vtree.Diff(g.ExecutedTree, tree)
-		for _, ch := range res1 {
+		changes = vtree.Diff(g.ExecutedTree, tree)
+		for _, ch := range changes {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
 					for _, m := range g.Mounts {
@@ -293,8 +294,8 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 				}
 			}
 		}
-		cs = append(cs, res1)
 	}
+	cs = append(cs, changes)
 	var FilteredMounts []*Mount
 	for _, m := range g.Mounts {
 		if m.ToBeRemoved {
