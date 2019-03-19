@@ -40,9 +40,7 @@ func TestRouter(t *testing.T) {
 			t.Error("Expected 1 component")
 		}
 
-		if res[0].Route.Name != "Home" {
-			t.Errorf("Expected HomeComponent, got %v", res[0].Route.Name)
-		}
+		AssertRoute(t, res[0]).Name("Home")
 	})
 
 	t.Run("Test /user/123", func(t *testing.T) {
@@ -51,13 +49,7 @@ func TestRouter(t *testing.T) {
 		if len(res) != 1 {
 			t.Error("Expected 1 component")
 		}
-		// expect UserComponent, id=123 somewhere
-		if res[0].Route.Name != "User" {
-			t.Errorf("Expected UserComponent, got %v", res[0].Route.Name)
-		}
-		if idParam := res[0].Params["id"]; idParam != "123" {
-			t.Errorf("Expected id to match 123, got %s", idParam)
-		}
+		AssertRoute(t, res[0]).Name("User").Paths("user", ":id").Params("id", "123")
 	})
 	t.Run("Test /user/123/profile", func(t *testing.T) {
 		res := router.ParseRoute("/user/123/profile")
@@ -65,16 +57,9 @@ func TestRouter(t *testing.T) {
 		if len(res) != 2 {
 			t.Error("Expected 2 components")
 		}
-		if res[0].Route.Name != "User" {
-			t.Errorf("Expected UserComponent, got %v", res[0].Route.Name)
-		}
-		if res[1].Route.Name != "UserProfile" {
-			t.Errorf("Expected UserProfile, got %v", res[0].Route.Name)
-		}
-		// expect UserComponent, UserProfile, id=123 somewhere
 
-		Match(t, res[0]).Name("User").Paths("user", ":id").Params("id", "123")
-		Match(t, res[1]).Name("UserProfile")
+		AssertRoute(t, res[0]).Name("User").Paths("user", ":id").Params("id", "123")
+		AssertRoute(t, res[1]).Name("UserProfile")
 	})
 }
 
@@ -83,7 +68,7 @@ type RouteMatcher struct {
 	match RouteMatch
 }
 
-func Match(t *testing.T, rm RouteMatch) *RouteMatcher {
+func AssertRoute(t *testing.T, rm RouteMatch) *RouteMatcher {
 	return &RouteMatcher{t, rm}
 }
 
