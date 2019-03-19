@@ -39,17 +39,26 @@ These routes are then set on Gadget, which will
 
 type Route struct {
 	Path      string
+	Name      string
 	Component Builder
 	Children  []Route
 }
 
-func (route Route) Parse(parts []string) ([]Route, []string) {
+type Router []Route
+
+type RouteMatch struct {
+	Route    Route
+	SubPaths []string
+	Params   map[string]string
+}
+
+func (route Route) Parse(parts []string) ([]RouteMatch, []string) {
 	fmt.Printf("Route %s parts %#v\n", route.Path, parts)
 
 	routePath := strings.Trim(route.Path, "/")
 	if len(parts) == 0 {
 		fmt.Println("Nothing!")
-		return []Route{}, []string{}
+		return []RouteMatch{}, []string{}
 	}
 	p := parts[0]
 	if p == "" {
@@ -69,16 +78,19 @@ func (route Route) Parse(parts []string) ([]Route, []string) {
 		return nil, nil
 	}
 
+	match := RouteMatch{Route: route, Params: make(map[string]string)}
 	for i, rp := range routeParts {
 		if strings.HasPrefix(rp, ":") {
 			fmt.Printf("I think %s and %s match\n", rp, parts[i])
+			match.Params[rp[1:]] = parts[i]
 		} else if rp != parts[i] {
 			fmt.Printf("%s and %s don't match, not gonna work\n", rp, parts[i])
 			return nil, nil
 		}
+		match.SubPaths = append(match.SubPaths, rp)
 	}
 
-	myMatch := []Route{route}
+	myMatch := []RouteMatch{match}
 	remaining := parts[numOfParts:] // can be empty!
 
 	if len(remaining) > 0 {
@@ -94,9 +106,7 @@ func (route Route) Parse(parts []string) ([]Route, []string) {
 	return myMatch, remaining
 }
 
-type Router []Route
-
-func (router Router) ParseRoute(path string) []Route {
+func (router Router) ParseRoute(path string) []RouteMatch {
 	fmt.Println("--- " + path + " ---")
 	path = strings.Trim(path, "/")
 	parts := strings.Split(path, "/")
