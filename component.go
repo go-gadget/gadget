@@ -248,6 +248,12 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 	// collect changesets
 	var cs []vtree.ChangeSet
 
+	/*
+	 * The componentElement can be a <router-view>, which means the component
+	 * comes from the router.
+	 * This component can/will be different based on the route, of course.
+	 * Perhaps store/index it based on the route? E.g. router-view-profile, router-view-posts
+	 */
 	ComponentHandler := func(componentElement *vtree.Element) {
 		for _, m := range g.Mounts {
 			if m.HasComponent(componentElement) {
@@ -317,6 +323,8 @@ func (g *WrappedComponent) HandleEvent(event string) {
 	g.Comp.Handlers()[event](g.Update)
 }
 
+// NewComponent creates a new WrappedComponent through the supplied Builder,
+// calling relevant hooks and doing necessary initialization
 func NewComponent(b Builder) *WrappedComponent {
 	comp := &WrappedComponent{Comp: b(), Update: nil}
 	comp.Comp.Init()
