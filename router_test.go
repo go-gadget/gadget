@@ -34,7 +34,7 @@ func TestRouter(t *testing.T) {
 	}
 
 	t.Run("Test /", func(t *testing.T) {
-		res := router.ParseRoute("/")
+		res := router.Parse("/")
 
 		if len(res) != 1 {
 			t.Error("Expected 1 component")
@@ -44,7 +44,7 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("Test /user/123", func(t *testing.T) {
-		res := router.ParseRoute("/user/123")
+		res := router.Parse("/user/123")
 
 		if len(res) != 1 {
 			t.Error("Expected 1 component")
@@ -52,7 +52,7 @@ func TestRouter(t *testing.T) {
 		AssertRoute(t, res[0]).Name("User").Paths("user", ":id").Params("id", "123")
 	})
 	t.Run("Test /user/123/profile", func(t *testing.T) {
-		res := router.ParseRoute("/user/123/profile")
+		res := router.Parse("/user/123/profile")
 
 		if len(res) != 2 {
 			t.Error("Expected 2 components")

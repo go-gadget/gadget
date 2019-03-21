@@ -2,6 +2,7 @@ package gadget
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
@@ -14,12 +15,13 @@ type Action interface {
 }
 
 type Gadget struct {
-	Chan   chan Action
-	Bridge vtree.Subject
-	Queue  []Action
-	Wakeup chan bool
-	Routes []Route
-	App    *WrappedComponent
+	Chan         chan Action
+	Bridge       vtree.Subject
+	Queue        []Action
+	Wakeup       chan bool
+	Routes       Router
+	RouteMatches []RouteMatch
+	App          *WrappedComponent
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
@@ -27,14 +29,14 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 		Chan:   make(chan Action),
 		Bridge: bridge,
 		Wakeup: make(chan bool),
-		App:    NewComponent(GenerateComponent("<div><router-view></router-view></div>", nil, nil)),
+		App:    NewComponent(GenerateComponent("<div>iHai</div>", nil, nil)),
 	}
 }
 
 // A Builder is anything that creates s Component
 type Builder func() Component
 
-func (g *Gadget) Router(routes []Route) {
+func (g *Gadget) Router(routes Router) {
 	g.Routes = routes
 }
 
@@ -56,21 +58,6 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
-func (g *Gadget) BuildMountsFromRoute() {
-	// get location, somehow
-	// map location to number of components
-	// set them in g.Mounts
-	path := g.Bridge.GetLocation()
-	if url, err := url.Parse(path); err == nil {
-		j.J(url.Path)
-		for _, r := range g.Routes {
-			if r.Path == url.Path {
-				// c := g.BuildComponent(r.Component)
-				// g.Mount(c, nil)
-			}
-		}
-	}
-}
 func (g *Gadget) SingleLoop() {
 
 	for len(g.Queue) > 0 {
@@ -93,9 +80,6 @@ func (g *Gadget) SingleLoop() {
 		work.Run()
 	}
 
-	// if len(g.Routes) > 0 {
-	// 	g.BuildMountsFromRoute()
-	// }
 	changes := g.App.BuildDiff(nil)
 
 	changes.ApplyChanges(g.Bridge)
@@ -115,6 +99,21 @@ func (g *Gadget) MainLoop() {
 	 * - IO ?
 	 */
 
+	if g.Routes != nil {
+		path := g.Bridge.GetLocation()
+		if url, err := url.Parse(path); err == nil {
+			g.RouteMatches = g.Routes.Parse(url.Path)
+		}
+	}
+	// Make sure there's aways a producer of actions
+	go func() {
+		for {
+			// If nothing is feeding g.Wakeup, we get the "all goroutines are asleep"
+			g.Wakeup <- false
+			time.Sleep(10 * time.Second)
+			j.J("Just slept 10 sec")
+		}
+	}()
 	go func() {
 
 		for {

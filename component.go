@@ -91,6 +91,9 @@ func (a *ActionData) Node() vtree.Node {
 	return a.node
 }
 
+func (a *ActionData) Run() {
+}
+
 func (a *SetAction) Run() {
 	j.J("SetAction.Run() called", a.property)
 	// update nodes?

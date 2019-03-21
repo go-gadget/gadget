@@ -106,7 +106,7 @@ func (route Route) Parse(parts []string) ([]RouteMatch, []string) {
 	return myMatch, remaining
 }
 
-func (router Router) ParseRoute(path string) []RouteMatch {
+func (router Router) Parse(path string) []RouteMatch {
 	fmt.Println("--- " + path + " ---")
 	path = strings.Trim(path, "/")
 	parts := strings.Split(path, "/")
