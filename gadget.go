@@ -21,18 +21,20 @@ type Gadget struct {
 	Wakeup       chan bool
 	Routes       Router
 	RouteMatches []RouteMatch
+	RouteIndex   int
 	App          *WrappedComponent
 	LastPath     string
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
-	return &Gadget{
+	g := &Gadget{
 		Chan:     make(chan Action),
 		Bridge:   bridge,
 		Wakeup:   make(chan bool),
-		App:      NewComponent(GenerateComponent("<div>iHai</div>", nil, nil)),
 		LastPath: "#",
 	}
+	g.App = g.NewComponent(GenerateComponent("<div>iHai</div>", nil, nil))
+	return g
 }
 
 // A Builder is anything that creates s Component
@@ -60,6 +62,17 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
+// NewComponent creates a new WrappedComponent through the supplied Builder,
+// calling relevant hooks and doing necessary initialization
+func (g *Gadget) NewComponent(b Builder) *WrappedComponent {
+	comp := &WrappedComponent{Comp: b(), Update: nil}
+	comp.Gadget = g
+
+	comp.Comp.Init()
+	comp.UnexecutedTree = vtree.Parse(comp.Comp.Template())
+	return comp
+}
+
 func (g *Gadget) SingleLoop() {
 
 	// This will track route changes on each iteration
@@ -67,6 +80,7 @@ func (g *Gadget) SingleLoop() {
 		if CurrentPath := g.Bridge.GetLocation(); g.LastPath != CurrentPath {
 			if url, err := url.Parse(CurrentPath); err == nil {
 				g.RouteMatches = g.Routes.Parse(url.Path)
+				g.RouteIndex = 0
 				g.LastPath = CurrentPath
 			} else {
 				panic("Could not parse path " + CurrentPath)

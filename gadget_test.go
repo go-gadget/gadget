@@ -78,7 +78,7 @@ func (t *TestBridge) SyncState(from vtree.Node) {
 func TestGadgetComponent(t *testing.T) {
 
 	g := NewGadget(NewTestBridge())
-	component := NewComponent(MakeDummyFactory("<div><p>Hi</p></div>", nil, nil))
+	component := g.NewComponent(MakeDummyFactory("<div><p>Hi</p></div>", nil, nil))
 	g.Mount(component)
 	g.SingleLoop()
 
@@ -102,7 +102,7 @@ func TestNestedComponents(t *testing.T) {
 			nil,
 			nil,
 		)
-		component := NewComponent(MakeDummyFactory(
+		component := g.NewComponent(MakeDummyFactory(
 			"<div><test-child></test-child></div>",
 			map[string]Builder{"test-child": ChildBuilder},
 			nil,
@@ -187,7 +187,7 @@ func TestMultiNestedComponents(t *testing.T) {
 			nil,
 			nil,
 		)
-		component := NewComponent(MakeDummyFactory(
+		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-if="BoolVal"></test-child>`+
 				`<test-child></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder},
@@ -241,7 +241,7 @@ func TestConditionalComponent(t *testing.T) {
 			nil,
 			nil,
 		)
-		component := NewComponent(MakeDummyFactory(
+		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-if="BoolVal"></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder},
 			nil,
@@ -362,7 +362,7 @@ func TestForComponent(t *testing.T) {
 			nil,
 			nil,
 		)
-		component := NewComponent(MakeDummyFactory(
+		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-for="IntArrayVal"></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder},
 			nil,
@@ -404,7 +404,7 @@ func TestComponentArgs(t *testing.T) {
 			nil,
 			Props,
 		)
-		component := NewComponent(MakeDummyFactory(
+		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child someprop="Hello World"></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder}, nil,
 		))
@@ -436,7 +436,7 @@ func TestComponentArgs(t *testing.T) {
 		// Because the parser assumes the ":" is actually a namespace separator,
 		// it will get removed. Hence, in a template, you need to use a double ::
 		// (or use g-bind:attr)
-		component := NewComponent(MakeDummyFactory(
+		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-bind:someprop="StringVal"></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder}, nil,
 		))
@@ -465,7 +465,7 @@ func TestForBindComponent(t *testing.T) {
 			nil,
 			[]string{"val"},
 		)
-		component := NewComponent(MakeDummyFactory(
+		component := g.NewComponent(MakeDummyFactory(
 			`<div><p g-for="IntArrayVal"><test-child ::val="_"></test-child></p></div>`,
 			map[string]Builder{"test-child": ChildBuilder},
 			nil,

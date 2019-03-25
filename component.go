@@ -114,6 +114,7 @@ type WrappedComponent struct {
 	ExecutedTree   *vtree.Element
 	Update         chan Action
 	Mounts         []*Mount
+	Gadget         *Gadget
 }
 
 func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
@@ -275,14 +276,16 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 
 			// How do we access router stuff?
 			// Make it global?
-			builder = g.Gadget.RouteMatches[0]
+			// deal with other props, matches
+			builder = g.Gadget.RouteMatches[g.Gadget.RouteIndex].Route.Component
+			g.Gadget.RouteIndex++
 		} else {
 			builder = childcomps[componentElement.Type]
 		}
 
 		if builder != nil {
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
-			wc := NewComponent(builder)
+			wc := g.Gadget.NewComponent(builder)
 			m := g.Mount(wc, componentElement)
 			Props := m.Component.ExtractProps(componentElement)
 			changes := m.Component.BuildDiff(Props)
@@ -338,15 +341,6 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 
 func (g *WrappedComponent) HandleEvent(event string) {
 	g.Comp.Handlers()[event](g.Update)
-}
-
-// NewComponent creates a new WrappedComponent through the supplied Builder,
-// calling relevant hooks and doing necessary initialization
-func NewComponent(b Builder) *WrappedComponent {
-	comp := &WrappedComponent{Comp: b(), Update: nil}
-	comp.Comp.Init()
-	comp.UnexecutedTree = vtree.Parse(comp.Comp.Template())
-	return comp
 }
 
 // A GeneratedComponent is a component that's dynamically built, not declaratively
