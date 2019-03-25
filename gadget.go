@@ -22,14 +22,16 @@ type Gadget struct {
 	Routes       Router
 	RouteMatches []RouteMatch
 	App          *WrappedComponent
+	LastPath     string
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
 	return &Gadget{
-		Chan:   make(chan Action),
-		Bridge: bridge,
-		Wakeup: make(chan bool),
-		App:    NewComponent(GenerateComponent("<div>iHai</div>", nil, nil)),
+		Chan:     make(chan Action),
+		Bridge:   bridge,
+		Wakeup:   make(chan bool),
+		App:      NewComponent(GenerateComponent("<div>iHai</div>", nil, nil)),
+		LastPath: "#",
 	}
 }
 
@@ -59,6 +61,18 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 }
 
 func (g *Gadget) SingleLoop() {
+
+	// This will track route changes on each iteration
+	if g.Routes != nil {
+		if CurrentPath := g.Bridge.GetLocation(); g.LastPath != CurrentPath {
+			if url, err := url.Parse(CurrentPath); err == nil {
+				g.RouteMatches = g.Routes.Parse(url.Path)
+				g.LastPath = CurrentPath
+			} else {
+				panic("Could not parse path " + CurrentPath)
+			}
+		}
+	}
 
 	for len(g.Queue) > 0 {
 		// keep track of which trees have been synced
@@ -99,12 +113,6 @@ func (g *Gadget) MainLoop() {
 	 * - IO ?
 	 */
 
-	if g.Routes != nil {
-		path := g.Bridge.GetLocation()
-		if url, err := url.Parse(path); err == nil {
-			g.RouteMatches = g.Routes.Parse(url.Path)
-		}
-	}
 	// Make sure there's aways a producer of actions
 	go func() {
 		for {

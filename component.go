@@ -269,7 +269,18 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 
 		// Build the component, if possible
 		childcomps := g.Comp.Components()
-		if builder, ok := childcomps[componentElement.Type]; ok {
+
+		var builder Builder
+		if componentElement.Type == "router-view" {
+
+			// How do we access router stuff?
+			// Make it global?
+			builder = g.Gadget.RouteMatches[0]
+		} else {
+			builder = childcomps[componentElement.Type]
+		}
+
+		if builder != nil {
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
 			wc := NewComponent(builder)
 			m := g.Mount(wc, componentElement)
@@ -281,6 +292,8 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 				}
 			}
 			cs = append(cs, changes)
+		} else {
+			j.J("Could not find / match component " + componentElement.Type)
 		}
 	}
 
