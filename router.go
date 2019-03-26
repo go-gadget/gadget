@@ -211,7 +211,8 @@ func (r *RouterLinkComponent) Template() string {
 func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	return map[string]Handler{
 		"transition": func(Updates chan Action) {
-			j.J("Transition", "x", r.Id, r.To, r, GlobalRouter.BuildPath(r.To, map[string]string{"id": r.Id}))
+			j.J("Transition", r.Id, r.To, GlobalRouter.BuildPath(r.To, map[string]string{"id": r.Id}))
+			// Gadget has the "bridge" to do window.history.pushState, so either this component or Router needs to be able to access Gadget anyway
 		},
 	}
 }
