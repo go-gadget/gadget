@@ -41,6 +41,8 @@ type Builder func() Component
 
 func (g *Gadget) Router(routes Router) {
 	g.Routes = routes
+	// So either we make this global, or we structurally pass Gadget around
+	GlobalRouter = routes
 }
 
 func (g *Gadget) Mount(c *WrappedComponent) {
@@ -65,9 +67,9 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 func (g *Gadget) GlobalComponent(ElementType string) Builder {
 	// Delegate to Router, Store, ...
 	if ElementType == "router-view" {
-		rm := g.CurrentRoute.Next()
-
-		return rm.Route.Component
+		if rm := g.CurrentRoute.Next(); rm != nil {
+			return rm.Route.Component
+		}
 	} else if ElementType == "router-link" {
 		return RouterLinkBuilder
 	}

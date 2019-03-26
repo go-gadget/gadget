@@ -43,7 +43,7 @@ type Route struct {
 	Path      string
 	Name      string
 	Component Builder
-	Children  []Route
+	Children  Router
 }
 
 type Router []Route
@@ -55,23 +55,27 @@ type RouteMatch struct {
 }
 
 type CurrentRoute struct {
-	Matches []RouteMatch
+	Matches []*RouteMatch
 	Params  map[string]string
 	Level   int
 }
 
-func (cr *CurrentRoute) Next() RouteMatch {
+func (cr *CurrentRoute) Next() *RouteMatch {
+	if cr.Level >= len(cr.Matches) {
+		// default to "index" subroute?
+		return nil
+	}
 	cr.Level++
 	return cr.Matches[cr.Level-1]
 }
 
-func (route Route) Parse(parts []string) ([]RouteMatch, []string) {
+func (route Route) Parse(parts []string) ([]*RouteMatch, []string) {
 	fmt.Printf("Route %s parts %#v\n", route.Path, parts)
 
 	routePath := strings.Trim(route.Path, "/")
 	if len(parts) == 0 {
 		fmt.Println("Nothing!")
-		return []RouteMatch{}, []string{}
+		return []*RouteMatch{}, []string{}
 	}
 	p := parts[0]
 	if p == "" {
@@ -91,7 +95,7 @@ func (route Route) Parse(parts []string) ([]RouteMatch, []string) {
 		return nil, nil
 	}
 
-	match := RouteMatch{Route: route, Params: make(map[string]string)}
+	match := &RouteMatch{Route: route, Params: make(map[string]string)}
 	for i, rp := range routeParts {
 		if strings.HasPrefix(rp, ":") {
 			fmt.Printf("I think %s and %s match\n", rp, parts[i])
@@ -103,7 +107,7 @@ func (route Route) Parse(parts []string) ([]RouteMatch, []string) {
 		match.SubPaths = append(match.SubPaths, rp)
 	}
 
-	myMatch := []RouteMatch{match}
+	myMatch := []*RouteMatch{match}
 	remaining := parts[numOfParts:] // can be empty!
 
 	if len(remaining) > 0 {
@@ -117,6 +121,48 @@ func (route Route) Parse(parts []string) ([]RouteMatch, []string) {
 		}
 	}
 	return myMatch, remaining
+}
+
+func (router Router) Find(name string) []Route {
+	for _, r := range router {
+		if r.Name == name {
+			return []Route{r}
+		}
+	}
+	// Start recursing
+	for _, r := range router {
+		if len(r.Children) > 0 {
+			if sub := r.Children.Find(name); sub != nil {
+				return append([]Route{r}, sub...)
+			}
+		}
+	}
+	return nil
+
+}
+func (router Router) BuildPath(name string, params map[string]string) string {
+	// How to deal with '/' when constructing paths? Always end in /?
+
+	route := router.Find(name)
+	path := ""
+	if route != nil {
+		for _, r := range route {
+			routeParts := strings.Split(r.Path, "/")
+			for _, rp := range routeParts {
+				if strings.HasPrefix(rp, ":") {
+					if val, ok := params[rp[1:]]; ok {
+						path += val + "/"
+					} else {
+						fmt.Printf("Could not map %s to value\n", rp)
+						path += rp + "/"
+					}
+				} else {
+					path += rp + "/"
+				}
+			}
+		}
+	}
+	return path
 }
 
 func (router Router) Parse(path string) *CurrentRoute {
@@ -165,8 +211,7 @@ func (r *RouterLinkComponent) Template() string {
 func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	return map[string]Handler{
 		"transition": func(Updates chan Action) {
-			j.J("Transition", "x", r.Id, r.To, r)
-			// call r.Gadget.Router(?).transition....
+			j.J("Transition", "x", r.Id, r.To, r, GlobalRouter.BuildPath(r.To, map[string]string{"id": r.Id}))
 		},
 	}
 }
@@ -176,3 +221,5 @@ func RouterLinkBuilder() Component {
 	c.SetupStorage(NewStructStorage(c))
 	return c
 }
+
+var GlobalRouter Router

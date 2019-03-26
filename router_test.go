@@ -64,14 +64,22 @@ func TestRouter(t *testing.T) {
 		AssertRoute(t, res.Matches[0]).Name("User").Paths("user", ":id").Params("id", "123")
 		AssertRoute(t, res.Matches[1]).Name("UserProfile")
 	})
+
+	t.Run("Test build UserProfile route", func(t *testing.T) {
+		path := router.BuildPath("UserProfile", map[string]string{"id": "123"})
+
+		if path != "/user/123/profile/" {
+			t.Errorf("Didn't get expected path, got %s", path)
+		}
+	})
 }
 
 type RouteMatcher struct {
 	t     *testing.T
-	match RouteMatch
+	match *RouteMatch
 }
 
-func AssertRoute(t *testing.T, rm RouteMatch) *RouteMatcher {
+func AssertRoute(t *testing.T, rm *RouteMatch) *RouteMatcher {
 	return &RouteMatcher{t, rm}
 }
 
