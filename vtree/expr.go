@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/go-gadget/gadget/j"
 )
 
 type ComponentRenderer func(*Element)
@@ -129,6 +131,8 @@ func (r *Renderer) RenderBind(e *Element, context *Context) {
 			if value := context.Get(v); value != NotFound {
 				// For now attrs are always strings XXX
 				e.Attributes[attr] = fmt.Sprint(value)
+			} else {
+				j.J("Could not get value for g-bind attr " + attr)
 			}
 			delete(e.Attributes, k)
 		}

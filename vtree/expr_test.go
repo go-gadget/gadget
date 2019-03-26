@@ -2,6 +2,7 @@ package vtree
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -62,7 +63,7 @@ func TestIfFalseExpression(t *testing.T) {
 	renderer := NewRenderer()
 	e := El("div").A("g-if", "MyBool").C(El("div").T("child 1"), El("div").T("child 2"))
 
-	res := renderer.Render(e, MakeContext(&Storage{MyBool: false}))
+	res := renderer.Render(e, MakeContext(Variable{"MyBool", reflect.ValueOf(false)}))
 
 	if res != nil {
 		t.Error("Expected node to disappear but it didn't")
@@ -73,7 +74,7 @@ func TestIfTrueExpression(t *testing.T) {
 	renderer := NewRenderer()
 	e := El("div").A("g-if", "MyBool").C(El("div").T("child 1"), El("div").T("child 2"))
 
-	res := renderer.Render(e, MakeContext(&Storage{MyBool: true}))[0]
+	res := renderer.Render(e, MakeContext(Variable{"MyBool", reflect.ValueOf(true)}))[0]
 
 	if res == nil {
 		t.Error("Expected to get node back")
@@ -91,7 +92,7 @@ func TestForExpression(t *testing.T) {
 	renderer := NewRenderer()
 	e := El("div").A("g-for", "MyArray").T("Hello World")
 
-	res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
+	res := renderer.Render(e, MakeContext(Variable{"MyArray", reflect.ValueOf([]int64{1, 2, 3, 4})}))
 
 	AssertElementCount(t, res, 4)
 
@@ -104,7 +105,7 @@ func TestEmptyForExpression(t *testing.T) {
 	renderer := NewRenderer()
 	e := El("div").A("g-for", "MyArray").T("Hello World")
 
-	res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{}}))
+	res := renderer.Render(e, MakeContext(Variable{"MyArray", reflect.ValueOf([]int64{})}))
 
 	if res != nil {
 		t.Errorf("Expected no nodes at all, got %d", len(res))
@@ -115,7 +116,7 @@ func TestForLoopElementID(t *testing.T) {
 	renderer := NewRenderer()
 	e := El("div").A("g-for", "MyArray").A("g-value", "_")
 
-	res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
+	res := renderer.Render(e, MakeContext(Variable{"MyArray", reflect.ValueOf([]int64{1, 2, 3, 4})}))
 
 	// Currently generate id's based on original + index
 	for i, el := range res {
@@ -132,7 +133,6 @@ func TestForExpressionWithContext(t *testing.T) {
 	// Does not work with intarray because of g-value
 	ctx := &Context{}
 	ctx.Push("MyArray", []string{"1", "2", "3", "4"})
-	// res := renderer.Render(e, MakeContext(&Storage{MyArray: []int64{1, 2, 3, 4}}))
 	res := renderer.Render(e, ctx)
 
 	AssertElementCount(t, res, 4)
@@ -187,11 +187,9 @@ func TestIfValueClass(t *testing.T) {
 	res := renderer.Render(
 		e,
 		MakeContext(
-			&struct {
-				MyClass string
-				MyIf    bool
-				MyValue int
-			}{"present", true, 42},
+			Variable{"MyClass", reflect.ValueOf("present")},
+			Variable{"MyIf", reflect.ValueOf(true)},
+			Variable{"MyValue", reflect.ValueOf(42)},
 		),
 	)
 

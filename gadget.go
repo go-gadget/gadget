@@ -20,8 +20,7 @@ type Gadget struct {
 	Queue        []Action
 	Wakeup       chan bool
 	Routes       Router
-	RouteMatches []RouteMatch
-	RouteIndex   int
+	CurrentRoute *CurrentRoute
 	App          *WrappedComponent
 	LastPath     string
 }
@@ -62,6 +61,20 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
+// GlobalComponent attempts to map a globally registered component (e.g. routing)
+func (g *Gadget) GlobalComponent(ElementType string) Builder {
+	// Delegate to Router, Store, ...
+	if ElementType == "router-view" {
+		rm := g.CurrentRoute.Next()
+
+		return rm.Route.Component
+	} else if ElementType == "router-link" {
+		return RouterLinkBuilder
+	}
+	// router link
+	return nil
+}
+
 // NewComponent creates a new WrappedComponent through the supplied Builder,
 // calling relevant hooks and doing necessary initialization
 func (g *Gadget) NewComponent(b Builder) *WrappedComponent {
@@ -79,8 +92,7 @@ func (g *Gadget) SingleLoop() {
 	if g.Routes != nil {
 		if CurrentPath := g.Bridge.GetLocation(); g.LastPath != CurrentPath {
 			if url, err := url.Parse(CurrentPath); err == nil {
-				g.RouteMatches = g.Routes.Parse(url.Path)
-				g.RouteIndex = 0
+				g.CurrentRoute = g.Routes.Parse(url.Path)
 				g.LastPath = CurrentPath
 			} else {
 				panic("Could not parse path " + CurrentPath)

@@ -35,17 +35,17 @@ type Component interface {
 	Init()
 	Props() []string
 	Template() string
-	Data() interface{}
+	Data() Storage
 	Handlers() map[string]Handler // Actions ?
 	Components() map[string]Builder
 }
 
 type BaseComponent struct {
-	Storage interface{}
+	Storage Storage
 }
 
-func (b *BaseComponent) SetupStorage(Storage interface{}) {
-	b.Storage = Storage
+func (b *BaseComponent) SetupStorage(storage Storage) {
+	b.Storage = storage
 }
 
 func (b *BaseComponent) Init() {
@@ -55,7 +55,8 @@ func (b *BaseComponent) Props() []string {
 	return []string{}
 }
 
-func (b *BaseComponent) Data() interface{} {
+// interface{} or Storage?
+func (b *BaseComponent) Data() Storage {
 	return b.Storage
 }
 
@@ -118,27 +119,7 @@ type WrappedComponent struct {
 }
 
 func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
-
-	// return err?
-	// use resolve to handle errors?
-	// look at how json handles this
-	storage := reflect.ValueOf(g.Comp.Data()).Elem()
-	field := storage.FieldByName(key)
-
-	// ValType := reflect.TypeOf(val)
-	// FieldType := reflect.TypeOf(field)
-
-	ValVal := reflect.ValueOf(val)
-
-	// fmt.Printf("%s -> %v - %v\n", key, FieldType, ValType)
-	field.Set(ValVal)
-	// switch ValType.Kind() {
-	// case reflect.String:
-	// 	field.Set(ValVal)
-	// case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-	// 	// tt := typ.Elem()
-	// 	field.Set(ValVal)
-	// }
+	g.Comp.Data().RawSetValue(key, val)
 }
 
 func (g *WrappedComponent) SetValue(key string, val interface{}) {
@@ -195,11 +176,14 @@ func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer, props []*vtr
 	renderer := vtree.NewRenderer()
 	renderer.Handler = handler
 
-	context := vtree.MakeContext(data)
-
 	for _, variable := range props {
-		context.PushValue(variable.Name, variable.Value)
+		// context.PushValue(variable.Name, variable.Value)
+		g.RawSetValue(variable.Name, variable.Value.Interface())
 	}
+
+	// This makes the props available in acontext, for template rendering.
+	// But not on the component itself
+	context := data.MakeContext()
 	// What to do if multi-element (g-for), or nil (g-if)? XXX
 	// always wrap component in <div> ?
 	tree := renderer.Render(g.UnexecutedTree, context)[0]
@@ -233,6 +217,8 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 
 	for _, propName := range g.Comp.Props() {
 		if val, ok := componentElement.Attributes[propName]; ok {
+			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
+		} else if val, ok := g.Gadget.CurrentRoute.Params[propName]; ok {
 			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
 		}
 	}
@@ -272,15 +258,8 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 		childcomps := g.Comp.Components()
 
 		var builder Builder
-		if componentElement.Type == "router-view" {
-
-			// How do we access router stuff?
-			// Make it global?
-			// deal with other props, matches
-			builder = g.Gadget.RouteMatches[g.Gadget.RouteIndex].Route.Component
-			g.Gadget.RouteIndex++
-		} else {
-			builder = childcomps[componentElement.Type]
+		if builder = childcomps[componentElement.Type]; builder == nil {
+			builder = g.Gadget.GlobalComponent(componentElement.Type)
 		}
 
 		if builder != nil {
@@ -372,7 +351,8 @@ func GenerateComponent(Template string, Components map[string]Builder,
 	return func() Component {
 		s := &GeneratedComponent{gTemplate: Template, gComponents: Components,
 			gProps: Props}
-		s.SetupStorage(s)
+		storage := NewMapStorage()
+		s.SetupStorage(storage)
 		return s
 	}
 }

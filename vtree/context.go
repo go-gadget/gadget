@@ -24,20 +24,10 @@ type Context struct {
 	Variables []Variable
 }
 
-// Make it accept a ...[]*Variable in stead?
-// and add a PushStruct in stead?
-func MakeContext(data interface{}) *Context {
+func MakeContext(vars ...Variable) *Context {
 	ctx := &Context{}
-
-	t := reflect.TypeOf(data)
-	v := reflect.ValueOf(data)
-	if t.Kind() == reflect.Ptr {
-		v = v.Elem()
-		t = t.Elem()
-	}
-
-	for i := 0; i < t.NumField(); i++ {
-		ctx.PushValue(t.Field(i).Name, v.Field(i))
+	for _, v := range vars {
+		ctx.PushValue(v.Name, v.Value)
 	}
 	return ctx
 }

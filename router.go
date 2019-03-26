@@ -3,6 +3,8 @@ package gadget
 import (
 	"fmt"
 	"strings"
+
+	"github.com/go-gadget/gadget/j"
 )
 
 /*
@@ -50,6 +52,17 @@ type RouteMatch struct {
 	Route    Route
 	SubPaths []string
 	Params   map[string]string
+}
+
+type CurrentRoute struct {
+	Matches []RouteMatch
+	Params  map[string]string
+	Level   int
+}
+
+func (cr *CurrentRoute) Next() RouteMatch {
+	cr.Level++
+	return cr.Matches[cr.Level-1]
 }
 
 func (route Route) Parse(parts []string) ([]RouteMatch, []string) {
@@ -106,7 +119,7 @@ func (route Route) Parse(parts []string) ([]RouteMatch, []string) {
 	return myMatch, remaining
 }
 
-func (router Router) Parse(path string) []RouteMatch {
+func (router Router) Parse(path string) *CurrentRoute {
 	fmt.Println("--- " + path + " ---")
 	path = strings.Trim(path, "/")
 	parts := strings.Split(path, "/")
@@ -119,8 +132,47 @@ func (router Router) Parse(path string) []RouteMatch {
 		fmt.Printf("-> Loop %d\n", i)
 		result, remainder := route.Parse(parts)
 		if result != nil && len(remainder) == 0 {
-			return result
+			cr := &CurrentRoute{Matches: result, Params: make(map[string]string)}
+			for _, m := range result {
+				for k, v := range m.Params {
+					cr.Params[k] = v
+				}
+			}
+			return cr
 		}
 	}
 	return nil
+}
+
+type RouterLinkComponent struct {
+	BaseComponent
+	Id string
+	To string
+}
+
+func (r *RouterLinkComponent) Init() {
+}
+
+func (r *RouterLinkComponent) Props() []string {
+	// support "*" - just send me all you got?
+	return []string{"Id", "To"}
+}
+
+func (r *RouterLinkComponent) Template() string {
+	return `<button g-click="transition">XXXfillin</button>`
+}
+
+func (r *RouterLinkComponent) Handlers() map[string]Handler {
+	return map[string]Handler{
+		"transition": func(Updates chan Action) {
+			j.J("Transition", "x", r.Id, r.To, r)
+			// call r.Gadget.Router(?).transition....
+		},
+	}
+}
+
+func RouterLinkBuilder() Component {
+	c := &RouterLinkComponent{}
+	c.SetupStorage(NewStructStorage(c))
+	return c
 }

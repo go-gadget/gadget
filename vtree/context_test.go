@@ -36,20 +36,6 @@ func TestContextNotFound(t *testing.T) {
 		t.Errorf("Expected NotFound, got %v", v)
 	}
 }
-func TestContextCreate(t *testing.T) {
-	data := struct {
-		Foo string
-		Bar int
-	}{"Hello World", 42}
-	ctx := MakeContext(data)
-
-	if len(ctx.Variables) != 2 {
-		t.Errorf("Expected 2 variables in context, got %d", len(ctx.Variables))
-	}
-
-	AssertValueString(t, ctx, "Foo", "Hello World")
-	AssertValueInt(t, ctx, "Bar", 42)
-}
 
 func TestPush(t *testing.T) {
 	ctx := &Context{}

@@ -36,30 +36,33 @@ func TestRouter(t *testing.T) {
 	t.Run("Test /", func(t *testing.T) {
 		res := router.Parse("/")
 
-		if len(res) != 1 {
+		if len(res.Matches) != 1 {
 			t.Error("Expected 1 component")
 		}
 
-		AssertRoute(t, res[0]).Name("Home")
+		AssertRoute(t, res.Matches[0]).Name("Home")
 	})
 
 	t.Run("Test /user/123", func(t *testing.T) {
 		res := router.Parse("/user/123")
 
-		if len(res) != 1 {
+		if len(res.Matches) != 1 {
 			t.Error("Expected 1 component")
 		}
-		AssertRoute(t, res[0]).Name("User").Paths("user", ":id").Params("id", "123")
+		AssertRoute(t, res.Matches[0]).Name("User").Paths("user", ":id").Params("id", "123")
+		if v, ok := res.Params["id"]; !ok || v != "123" {
+			t.Errorf("Expected id to be in params and have value 123, got %v", v)
+		}
 	})
 	t.Run("Test /user/123/profile", func(t *testing.T) {
 		res := router.Parse("/user/123/profile")
 
-		if len(res) != 2 {
+		if len(res.Matches) != 2 {
 			t.Error("Expected 2 components")
 		}
 
-		AssertRoute(t, res[0]).Name("User").Paths("user", ":id").Params("id", "123")
-		AssertRoute(t, res[1]).Name("UserProfile")
+		AssertRoute(t, res.Matches[0]).Name("User").Paths("user", ":id").Params("id", "123")
+		AssertRoute(t, res.Matches[1]).Name("UserProfile")
 	})
 }
 

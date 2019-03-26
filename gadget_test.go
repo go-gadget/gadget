@@ -20,7 +20,7 @@ func MakeDummyFactory(Template string, Components map[string]Builder, Props []st
 		s := &DummyComponent{
 			GeneratedComponent: GeneratedComponent{gTemplate: Template,
 				gComponents: Components, gProps: Props}}
-		s.SetupStorage(s)
+		s.SetupStorage(NewStructStorage(s))
 		return s
 	}
 }
@@ -400,12 +400,12 @@ func TestComponentArgs(t *testing.T) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
 		ChildBuilder := MakeDummyFactory(
-			`<b g-value="someprop">I am the child</b>`,
+			`<b g-value="StringVal">I am the child</b>`,
 			nil,
 			Props,
 		)
 		component := g.NewComponent(MakeDummyFactory(
-			`<div><test-child someprop="Hello World"></test-child></div>`,
+			`<div><test-child StringVal="Hello World"></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder}, nil,
 		))
 		g.Mount(component)
@@ -413,7 +413,7 @@ func TestComponentArgs(t *testing.T) {
 	}
 
 	t.Run("Test direct attribute", func(t *testing.T) {
-		g, _, _ := SetupTestGadget([]string{"someprop"})
+		g, _, _ := SetupTestGadget([]string{"StringVal"})
 		g.SingleLoop()
 
 		if len(g.App.Mounts) != 1 {
@@ -429,15 +429,15 @@ func TestComponentArgs(t *testing.T) {
 	t.Run("Test bound attribute", func(t *testing.T) {
 		g := NewGadget(NewTestBridge())
 		ChildBuilder := MakeDummyFactory(
-			`<b g-value="someprop">I am the child</b>`,
+			`<b g-value="StringVal">I am the child</b>`,
 			nil,
-			[]string{"someprop"},
+			[]string{"StringVal"},
 		)
 		// Because the parser assumes the ":" is actually a namespace separator,
 		// it will get removed. Hence, in a template, you need to use a double ::
 		// (or use g-bind:attr)
 		component := g.NewComponent(MakeDummyFactory(
-			`<div><test-child g-bind:someprop="StringVal"></test-child></div>`,
+			`<div><test-child g-bind:StringVal="StringVal"></test-child></div>`,
 			map[string]Builder{"test-child": ChildBuilder}, nil,
 		))
 
@@ -461,12 +461,12 @@ func TestForBindComponent(t *testing.T) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
 		ChildBuilder := MakeDummyFactory(
-			`<b g-value="val"></b>`,
+			`<b g-value="StringVal"></b>`,
 			nil,
-			[]string{"val"},
+			[]string{"StringVal"},
 		)
 		component := g.NewComponent(MakeDummyFactory(
-			`<div><p g-for="IntArrayVal"><test-child ::val="_"></test-child></p></div>`,
+			`<div><p g-for="IntArrayVal"><test-child ::StringVal="_"></test-child></p></div>`,
 			map[string]Builder{"test-child": ChildBuilder},
 			nil,
 		))
