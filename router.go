@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-gadget/gadget/j"
+	"github.com/go-gadget/gadget/vtree"
 )
 
 /*
@@ -70,11 +71,8 @@ func (cr *CurrentRoute) Next() *RouteMatch {
 }
 
 func (route Route) Parse(parts []string) ([]*RouteMatch, []string) {
-	fmt.Printf("Route %s parts %#v\n", route.Path, parts)
-
 	routePath := strings.Trim(route.Path, "/")
 	if len(parts) == 0 {
-		fmt.Println("Nothing!")
 		return []*RouteMatch{}, []string{}
 	}
 	p := parts[0]
@@ -84,24 +82,18 @@ func (route Route) Parse(parts []string) ([]*RouteMatch, []string) {
 	// special case: starts with :
 
 	routeParts := strings.Split(routePath, "/")
-	fmt.Printf("routeParts %s -> %#v\n", routePath, routeParts)
-	// '' match ''
-	// but 'user' '123' match 'user' ':id'
 
 	// route expects more parts than we have left
 	numOfParts := len(routeParts)
 	if numOfParts > len(parts) {
-		fmt.Printf("%#v > %#v, so no\n", routeParts, parts)
 		return nil, nil
 	}
 
 	match := &RouteMatch{Route: route, Params: make(map[string]string)}
 	for i, rp := range routeParts {
 		if strings.HasPrefix(rp, ":") {
-			fmt.Printf("I think %s and %s match\n", rp, parts[i])
 			match.Params[rp[1:]] = parts[i]
 		} else if rp != parts[i] {
-			fmt.Printf("%s and %s don't match, not gonna work\n", rp, parts[i])
 			return nil, nil
 		}
 		match.SubPaths = append(match.SubPaths, rp)
@@ -190,6 +182,24 @@ func (router Router) Parse(path string) *CurrentRoute {
 	return nil
 }
 
+func (router Router) TransitionToName(name string, params map[string]string) {
+	newPath := router.BuildPath(name, params)
+	bridge := GetRegistry().Get("bridge").(vtree.Subject)
+	j.J("Transition", newPath)
+	// store oldPath/newPath, compare, etc?
+	bridge.SetLocation(newPath)
+}
+
+func SetRouter(router *Router) {
+	registry := GetRegistry()
+	registry.Register("router", router)
+}
+
+func GetRouter() *Router {
+	registry := GetRegistry()
+	return registry.Get("router").(*Router)
+}
+
 type RouterLinkComponent struct {
 	BaseComponent
 	Id string
@@ -211,8 +221,7 @@ func (r *RouterLinkComponent) Template() string {
 func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	return map[string]Handler{
 		"transition": func(Updates chan Action) {
-			j.J("Transition", r.Id, r.To, GlobalRouter.BuildPath(r.To, map[string]string{"id": r.Id}))
-			// Gadget has the "bridge" to do window.history.pushState, so either this component or Router needs to be able to access Gadget anyway
+			GetRouter().TransitionToName(r.To, map[string]string{"id": r.Id})
 		},
 	}
 }
@@ -222,5 +231,3 @@ func RouterLinkBuilder() Component {
 	c.SetupStorage(NewStructStorage(c))
 	return c
 }
-
-var GlobalRouter Router

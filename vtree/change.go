@@ -13,6 +13,7 @@ type Subject interface {
 	InsertBefore(before Node, after Node) error
 	SyncState(from Node)
 	GetLocation() string
+	SetLocation(string)
 }
 
 /* Change should be on the 'other side' domtree, not on a local

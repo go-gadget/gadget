@@ -22,6 +22,10 @@ func (b *DummyBridge) GetLocation() string {
 	return "/"
 }
 
+func (b *DummyBridge) SetLocation(path string) {
+
+}
+
 func (b *DummyBridge) AttributeChange(Target Node, Adds, Deletes, Updates Attributes) error {
 	return nil
 }

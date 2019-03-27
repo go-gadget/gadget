@@ -217,3 +217,9 @@ func (b *DomBridge) InsertBefore(before Node, after Node) error {
 func (b *DomBridge) GetLocation() string {
 	return b.Doc.Get("location").String()
 }
+
+func (b *DomBridge) SetLocation(path string) {
+	window := js.Global().Get("window")
+	history := window.Get("history")
+	history.Call("pushState", path, "ignored", path)
+}

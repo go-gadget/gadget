@@ -32,7 +32,9 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 		Wakeup:   make(chan bool),
 		LastPath: "#",
 	}
-	g.App = g.NewComponent(GenerateComponent("<div>iHai</div>", nil, nil))
+	g.App = g.NewComponent(GenerateComponent("<div>Hai</div>", nil, nil))
+	GetRegistry().Register("gadget", g)
+	GetRegistry().Register("bridge", bridge)
 	return g
 }
 
@@ -42,7 +44,7 @@ type Builder func() Component
 func (g *Gadget) Router(routes Router) {
 	g.Routes = routes
 	// So either we make this global, or we structurally pass Gadget around
-	GlobalRouter = routes
+	SetRouter(&routes)
 }
 
 func (g *Gadget) Mount(c *WrappedComponent) {
