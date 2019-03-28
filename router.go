@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/go-gadget/gadget/j"
-	"github.com/go-gadget/gadget/vtree"
 )
 
 /*
@@ -182,14 +181,6 @@ func (router Router) Parse(path string) *CurrentRoute {
 	return nil
 }
 
-func (router Router) TransitionToName(name string, params map[string]string) {
-	newPath := router.BuildPath(name, params)
-	bridge := GetRegistry().Get("bridge").(vtree.Subject)
-	j.J("Transition", newPath)
-	// store oldPath/newPath, compare, etc?
-	bridge.SetLocation(newPath)
-}
-
 func SetRouter(router *Router) {
 	registry := GetRegistry()
 	registry.Register("router", router)
@@ -198,6 +189,32 @@ func SetRouter(router *Router) {
 func GetRouter() *Router {
 	registry := GetRegistry()
 	return registry.Get("router").(*Router)
+}
+
+type RouterState struct {
+	Router  Router
+	oldPath string
+	newPath string
+	Update  chan Action
+}
+
+func (rs *Router) TransitionToName(name string, params map[string]string) {}
+
+type TransitionAction struct{}
+
+func (t *TransitionAction) Run()       {}
+func (t *TransitionAction) Component() {}
+
+func (rs *RouterState) TransitionToName(name string, params map[string]string) {
+	newPath := rs.Router.BuildPath(name, params)
+	if newPath != rs.oldPath {
+		rs.oldPath = newPath
+		// bridge := GetRegistry().Get("bridge").(vtree.Subject)
+		j.J("Transition", newPath)
+
+		// bridge.SetLocation(newPath)
+		// rs.Update <- &TransitionAction{rs.oldPath, rs.newPath}
+	}
 }
 
 type RouterLinkComponent struct {

@@ -10,8 +10,6 @@ import (
 
 type Action interface {
 	Run()
-	Component() *WrappedComponent
-	Node() vtree.Node
 }
 
 type Gadget struct {
@@ -23,14 +21,16 @@ type Gadget struct {
 	CurrentRoute *CurrentRoute
 	App          *WrappedComponent
 	LastPath     string
+	RouterState  *RouterState
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
 	g := &Gadget{
-		Chan:     make(chan Action),
-		Bridge:   bridge,
-		Wakeup:   make(chan bool),
-		LastPath: "#",
+		Chan:        make(chan Action),
+		Bridge:      bridge,
+		Wakeup:      make(chan bool),
+		LastPath:    "#",
+		RouterState: &RouterState{},
 	}
 	g.App = g.NewComponent(GenerateComponent("<div>Hai</div>", nil, nil))
 	GetRegistry().Register("gadget", g)
@@ -43,6 +43,7 @@ type Builder func() Component
 
 func (g *Gadget) Router(routes Router) {
 	g.Routes = routes
+	g.RouterState.Router = routes
 	// So either we make this global, or we structurally pass Gadget around
 	SetRouter(&routes)
 }
@@ -104,22 +105,17 @@ func (g *Gadget) SingleLoop() {
 		}
 	}
 
+	// Just sync entire tree. We can optimize this later
+	if g.App.ExecutedTree != nil {
+		tree := g.App.ExecutedTree
+		g.SyncState(tree)
+	}
+
 	for len(g.Queue) > 0 {
-		// keep track of which trees have been synced
-		syncedTrees := make(map[*WrappedComponent]bool)
+		// continue until queue is completely empty (could be infinite, so cap?)
 
 		work := g.Queue[0]
 		g.Queue = g.Queue[1:]
-
-		c := work.Component()
-
-		if !syncedTrees[c] {
-			tree := c.ExecutedTree
-			syncedTrees[c] = true
-
-			// Get data before doing work
-			g.SyncState(tree)
-		}
 
 		work.Run()
 	}

@@ -82,16 +82,6 @@ type SetAction struct {
 	value    interface{}
 }
 
-func (a *ActionData) Component() *WrappedComponent {
-	// how to avoid this repetition for all actions?
-	return a.component
-}
-
-func (a *ActionData) Node() vtree.Node {
-	// how to avoid this repetition for all actions?
-	return a.node
-}
-
 func (a *ActionData) Run() {
 }
 
