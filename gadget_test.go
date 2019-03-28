@@ -51,6 +51,9 @@ func (t *TestBridge) GetLocation() string {
 	return "/"
 }
 
+func (t *TestBridge) SetLocation(string) {
+}
+
 func (t *TestBridge) AttributeChange(Target vtree.Node, Adds, Deletes, Updates vtree.Attributes) error {
 	t.AttributeChangeCount++
 	return nil
