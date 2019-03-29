@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/go-gadget/gadget/j"
+	"github.com/go-gadget/gadget/vtree"
 )
 
 /*
@@ -191,29 +192,46 @@ func GetRouter() *Router {
 	return registry.Get("router").(*Router)
 }
 
-type RouterState struct {
-	Router  Router
-	oldPath string
-	newPath string
-	Update  chan Action
+func SetRouterState(state *RouterState) {
+	registry := GetRegistry()
+	registry.Register("router-state", state)
 }
 
-func (rs *Router) TransitionToName(name string, params map[string]string) {}
+func GetRouterState() *RouterState {
+	registry := GetRegistry()
+	return registry.Get("router-state").(*RouterState)
+}
+
+type RouterState struct {
+	Router       Router
+	CurrentRoute *CurrentRoute
+	oldPath      string
+	newPath      string
+	Update       chan Action
+}
 
 type TransitionAction struct{}
 
-func (t *TransitionAction) Run()       {}
-func (t *TransitionAction) Component() {}
+func (t *TransitionAction) Run() {
+
+}
+
+func (rs *RouterState) TransitionToPath(path string) {
+	j.J("Transition", path)
+	rs.oldPath = path
+	bridge := GetRegistry().Get("bridge").(vtree.Subject)
+	bridge.SetLocation(path)
+
+	rs.CurrentRoute = rs.Router.Parse(path)
+	rs.Update <- &TransitionAction{} // rs.oldPath, rs.newPath}
+}
 
 func (rs *RouterState) TransitionToName(name string, params map[string]string) {
 	newPath := rs.Router.BuildPath(name, params)
 	if newPath != rs.oldPath {
 		rs.oldPath = newPath
-		// bridge := GetRegistry().Get("bridge").(vtree.Subject)
-		j.J("Transition", newPath)
 
-		// bridge.SetLocation(newPath)
-		// rs.Update <- &TransitionAction{rs.oldPath, rs.newPath}
+		rs.TransitionToPath(newPath)
 	}
 }
 
@@ -238,7 +256,7 @@ func (r *RouterLinkComponent) Template() string {
 func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	return map[string]Handler{
 		"transition": func(Updates chan Action) {
-			GetRouter().TransitionToName(r.To, map[string]string{"id": r.Id})
+			GetRouterState().TransitionToName(r.To, map[string]string{"id": r.Id})
 		},
 	}
 }

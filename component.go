@@ -122,7 +122,6 @@ func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 			vv := v
 			f := func(value string) {
 				// should probably do type conversions, return something if fails
-				j.J("Setter", vv, value)
 				// RawSetValue doesn't trigger a new Action
 				g.RawSetValue(vv, value)
 			}
@@ -187,7 +186,7 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 	for _, propName := range g.Comp.Props() {
 		if val, ok := componentElement.Attributes[propName]; ok {
 			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
-		} else if val, ok := g.Gadget.CurrentRoute.Params[propName]; ok {
+		} else if val, ok := g.Gadget.RouterState.CurrentRoute.Params[propName]; ok {
 			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
 		}
 	}

@@ -1,6 +1,7 @@
 package gadget
 
 import (
+	"fmt"
 	"net/url"
 	"time"
 
@@ -13,15 +14,13 @@ type Action interface {
 }
 
 type Gadget struct {
-	Chan         chan Action
-	Bridge       vtree.Subject
-	Queue        []Action
-	Wakeup       chan bool
-	Routes       Router
-	CurrentRoute *CurrentRoute
-	App          *WrappedComponent
-	LastPath     string
-	RouterState  *RouterState
+	Chan        chan Action
+	Bridge      vtree.Subject
+	Queue       []Action
+	Wakeup      chan bool
+	Routes      Router
+	App         *WrappedComponent
+	RouterState *RouterState
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
@@ -29,12 +28,12 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 		Chan:        make(chan Action),
 		Bridge:      bridge,
 		Wakeup:      make(chan bool),
-		LastPath:    "#",
 		RouterState: &RouterState{},
 	}
 	g.App = g.NewComponent(GenerateComponent("<div>Hai</div>", nil, nil))
 	GetRegistry().Register("gadget", g)
 	GetRegistry().Register("bridge", bridge)
+	g.RouterState.Update = g.Chan
 	return g
 }
 
@@ -46,6 +45,7 @@ func (g *Gadget) Router(routes Router) {
 	g.RouterState.Router = routes
 	// So either we make this global, or we structurally pass Gadget around
 	SetRouter(&routes)
+	SetRouterState(g.RouterState)
 }
 
 func (g *Gadget) Mount(c *WrappedComponent) {
@@ -70,7 +70,7 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 func (g *Gadget) GlobalComponent(ElementType string) Builder {
 	// Delegate to Router, Store, ...
 	if ElementType == "router-view" {
-		if rm := g.CurrentRoute.Next(); rm != nil {
+		if rm := g.RouterState.CurrentRoute.Next(); rm != nil {
 			return rm.Route.Component
 		}
 	} else if ElementType == "router-link" {
@@ -93,18 +93,6 @@ func (g *Gadget) NewComponent(b Builder) *WrappedComponent {
 
 func (g *Gadget) SingleLoop() {
 
-	// This will track route changes on each iteration
-	if g.Routes != nil {
-		if CurrentPath := g.Bridge.GetLocation(); g.LastPath != CurrentPath {
-			if url, err := url.Parse(CurrentPath); err == nil {
-				g.CurrentRoute = g.Routes.Parse(url.Path)
-				g.LastPath = CurrentPath
-			} else {
-				panic("Could not parse path " + CurrentPath)
-			}
-		}
-	}
-
 	// Just sync entire tree. We can optimize this later
 	if g.App.ExecutedTree != nil {
 		tree := g.App.ExecutedTree
@@ -117,6 +105,7 @@ func (g *Gadget) SingleLoop() {
 		work := g.Queue[0]
 		g.Queue = g.Queue[1:]
 
+		fmt.Printf("Work found: %#v\n", work)
 		work.Run()
 	}
 
@@ -151,6 +140,7 @@ func (g *Gadget) MainLoop() {
 	go func() {
 
 		for {
+			fmt.Println("Ready to read tasks")
 			msg := <-g.Chan
 
 			size := len(g.Queue)
@@ -163,6 +153,12 @@ func (g *Gadget) MainLoop() {
 		}
 	}()
 
+	// Set initial route
+	if g.Routes != nil {
+		if url, err := url.Parse(g.Bridge.GetLocation()); err == nil {
+			g.RouterState.TransitionToPath(url.Path)
+		}
+	}
 	for {
 		j.J("Loop!")
 		g.SingleLoop()
