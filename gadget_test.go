@@ -512,7 +512,8 @@ func TestForBindComponent(t *testing.T) {
 
 func TestRoutes(t *testing.T) {
 	Level1Component := MakeDummyFactory("<div>1<router-view></router-view></div>", nil, nil)
-	Level2Component := MakeDummyFactory("<div>2</div>", nil, nil)
+	Level2aComponent := MakeDummyFactory("<div>2a</div>", nil, nil)
+	Level2bComponent := MakeDummyFactory("<div>2b</div>", nil, nil)
 
 	router := Router{
 		Route{
@@ -521,22 +522,96 @@ func TestRoutes(t *testing.T) {
 			Component: Level1Component,
 			Children: []Route{
 				Route{
-					Path:      "level2",
-					Name:      "Level2",
-					Component: Level2Component,
+					Path:      "level2a",
+					Name:      "Level2a",
+					Component: Level2aComponent,
+				},
+				Route{
+					Path:      "level2b",
+					Name:      "Level2b",
+					Component: Level2bComponent,
 				},
 			},
 		},
 	}
-	g := NewGadget(NewTestBridge())
-	g.Router(router)
 
-	go func() {
-		<-g.Chan
-	}()
-	g.RouterState.TransitionToPath("/level1/123/level2")
-	g.SingleLoop()
+	t.Run("Single loop", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
+		g.Router(router)
 
-	t.Error(g.App.Mounts[0].Component.ExecutedTree.ToString())
-	// reset global state after each test
+		go func() {
+			<-g.Chan
+		}()
+		g.RouterState.TransitionToPath("/level1/123/level2a")
+		g.SingleLoop()
+
+		if l := len(g.App.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+		if l := len(g.App.Mounts[0].Component.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2a</div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+
+	})
+	t.Run("Transition a->b", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
+		g.Router(router)
+
+		go func() {
+			<-g.Chan
+			<-g.Chan
+		}()
+		g.RouterState.TransitionToPath("/level1/123/level2a")
+		g.SingleLoop()
+		g.RouterState.TransitionToPath("/level1/123/level2b")
+		g.SingleLoop()
+
+		if l := len(g.App.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+		if l := len(g.App.Mounts[0].Component.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2b</div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+
+	})
+	t.Run("Multi loop", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
+		g.Router(router)
+
+		go func() {
+			<-g.Chan
+		}()
+		g.RouterState.TransitionToPath("/level1/123/level2a")
+		g.SingleLoop()
+		g.SingleLoop()
+		g.SingleLoop()
+		g.SingleLoop()
+
+		if l := len(g.App.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+		if l := len(g.App.Mounts[0].Component.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2a</div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+
+	})
+	// reset global state after each test?
 }
