@@ -584,7 +584,7 @@ func TestRoutes(t *testing.T) {
 		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2b</div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
-
+		// Possibly check for DeleteChange on old component?
 	})
 	t.Run("Multi loop", func(t *testing.T) {
 		g := NewGadget(NewTestBridge())
