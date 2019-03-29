@@ -509,3 +509,34 @@ func TestForBindComponent(t *testing.T) {
 }
 
 // nested loop using, e.g., [][]string
+
+func TestRoutes(t *testing.T) {
+	Level1Component := MakeDummyFactory("<div>1<router-view></router-view></div>", nil, nil)
+	Level2Component := MakeDummyFactory("<div>2</div>", nil, nil)
+
+	router := Router{
+		Route{
+			Path:      "/level1/:id",
+			Name:      "Level1",
+			Component: Level1Component,
+			Children: []Route{
+				Route{
+					Path:      "level2",
+					Name:      "Level2",
+					Component: Level2Component,
+				},
+			},
+		},
+	}
+	g := NewGadget(NewTestBridge())
+	g.Router(router)
+
+	go func() {
+		<-g.Chan
+	}()
+	g.RouterState.TransitionToPath("/level1/123/level2")
+	g.SingleLoop()
+
+	t.Error(g.App.Mounts[0].Component.ExecutedTree.ToString())
+	// reset global state after each test
+}

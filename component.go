@@ -194,38 +194,41 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 	return props
 }
 
-/*
- * Called if a component tag is encountered (e.g. <my-comp>)
- *
- * Either the component is already mounted -> find it and find its variables, or
- * it needs to be created. Find it, create instance, etc.
- */
-// rename to Render?
 func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeSet) {
 
 	// collect changesets
 	var cs []vtree.ChangeSet
 
-	/*
-	 * The componentElement can be a <router-view>, which means the component
-	 * comes from the router.
-	 * This component can/will be different based on the route, of course.
-	 * Perhaps store/index it based on the route? E.g. router-view-profile, router-view-posts
-	 */
+	// Invoked when something component-like is encountered. Includes <router-view>
 	ComponentHandler := func(componentElement *vtree.Element) {
-		for _, m := range g.Mounts {
-			if m.HasComponent(componentElement) {
-				Props := m.Component.ExtractProps(componentElement)
-				changes := m.Component.BuildDiff(Props)
-				cs = append(cs, changes)
-				return
+		var builder Builder
+		if componentElement.Type != "router-view" {
+			for _, m := range g.Mounts {
+				if m.HasComponent(componentElement) {
+					// This will be true for a router-view, even if the inner component changes.
+					if componentElement.Type == "router-view" {
+						j.J("It's a router-view!")
+						// check if it has changed.
+						// If so, delete old one.
+						// builder = g.Gadget.GlobalComponent(componentElement.Type)
+						// wc := g.Gadget.NewComponent(builder)
+						// m.Component = wc
+						// ONLY IF CHANGE!
+						// cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: componentElement}})
+						// m.ToBeRemoved = true
+						// break
+					}
+					Props := m.Component.ExtractProps(componentElement)
+					changes := m.Component.BuildDiff(Props)
+					cs = append(cs, changes)
+					return
+				}
 			}
 		}
 
 		// Build the component, if possible
 		childcomps := g.Comp.Components()
 
-		var builder Builder
 		if builder = childcomps[componentElement.Type]; builder == nil {
 			builder = g.Gadget.GlobalComponent(componentElement.Type)
 		}
@@ -243,7 +246,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 			}
 			cs = append(cs, changes)
 		} else {
-			j.J("Could not find / match component " + componentElement.Type)
+			j.J("Could not find / match component "+componentElement.Type, builder, builder == nil, builder != nil)
 		}
 	}
 

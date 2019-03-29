@@ -30,7 +30,7 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 		Wakeup:      make(chan bool),
 		RouterState: &RouterState{},
 	}
-	g.App = g.NewComponent(GenerateComponent("<div>Hai</div>", nil, nil))
+	g.App = g.NewComponent(GenerateComponent("<div>App<router-view></router-view></div>", nil, nil))
 	GetRegistry().Register("gadget", g)
 	GetRegistry().Register("bridge", bridge)
 	g.RouterState.Update = g.Chan
@@ -76,7 +76,6 @@ func (g *Gadget) GlobalComponent(ElementType string) Builder {
 	} else if ElementType == "router-link" {
 		return RouterLinkBuilder
 	}
-	// router link
 	return nil
 }
 
@@ -109,24 +108,14 @@ func (g *Gadget) SingleLoop() {
 		work.Run()
 	}
 
+	// XXX yuck
+	g.RouterState.CurrentRoute.Level = 0
 	changes := g.App.BuildDiff(nil)
 
 	changes.ApplyChanges(g.Bridge)
-
 }
 
 func (g *Gadget) MainLoop() {
-	// Right now an update is triggered by sending something to the Chan channel.
-	// If we'd do this on every SetValue, we'd get a lot of updates.
-	// Better is to save / queue them and handle them in one go.
-	// This probably means a go-routine needs to explicitly trigger an update
-	/*
-	 * Certain triggers cause the mainloop to loop. Normally the application
-	 * is idle, except when:
-	 * - a timer expires
-	 * - an event (that's being listened to) triggers
-	 * - IO ?
-	 */
 
 	// Make sure there's aways a producer of actions
 	go func() {
@@ -137,8 +126,8 @@ func (g *Gadget) MainLoop() {
 			j.J("Just slept 10 sec")
 		}
 	}()
-	go func() {
 
+	go func() {
 		for {
 			fmt.Println("Ready to read tasks")
 			msg := <-g.Chan
