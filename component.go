@@ -72,27 +72,10 @@ func (b *BaseComponent) Components() map[string]Builder {
 	return nil
 }
 
-type ActionData struct {
+type UserAction struct {
 	component *WrappedComponent
 	node      vtree.Node
-}
-type SetAction struct {
-	ActionData
-	property string
-	value    interface{}
-}
-
-func (a *ActionData) Run() {
-}
-
-func (a *SetAction) Run() {
-	j.J("SetAction.Run() called", a.property)
-	// update nodes?
-}
-
-type UserAction struct {
-	ActionData
-	handler string
+	handler   string
 }
 
 func (a *UserAction) Run() {
@@ -113,14 +96,7 @@ func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
 }
 
 func (g *WrappedComponent) SetValue(key string, val interface{}) {
-	// Perhaps set doesn't need to happen immediately if Get() is also
-	// intercepted..
 	g.RawSetValue(key, val)
-	g.Update <- &SetAction{
-		ActionData: ActionData{component: g,
-			node: nil},
-		property: key,
-		value:    val}
 }
 
 func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
@@ -129,11 +105,14 @@ func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 		if k == "g-click" {
 			vv := v
 			f := func() {
+				// One of the few actions that actually does stuff
+				// But this should be reversed: A click on a control
+				// creates an action (task). When handled, look up
+				// any handlers for it.
 				g.Update <- &UserAction{
-					ActionData: ActionData{
-						component: g,
-						node:      node},
-					handler: vv,
+					component: g,
+					node:      node,
+					handler:   vv,
 				}
 			}
 			node.Handlers[v] = f
