@@ -58,16 +58,14 @@ type RouteMatch struct {
 type CurrentRoute struct {
 	Matches []*RouteMatch
 	Params  map[string]string
-	Level   int
 }
 
-func (cr *CurrentRoute) Next() *RouteMatch {
-	if cr.Level >= len(cr.Matches) {
+func (cr *CurrentRoute) Get(level int) *RouteMatch {
+	if level >= len(cr.Matches) {
 		// default to "index" subroute?
 		return nil
 	}
-	cr.Level++
-	return cr.Matches[cr.Level-1]
+	return cr.Matches[level]
 }
 
 func (route Route) Parse(parts []string) ([]*RouteMatch, []string) {

@@ -67,10 +67,12 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 }
 
 // GlobalComponent attempts to map a globally registered component (e.g. routing)
-func (g *Gadget) GlobalComponent(ElementType string) Builder {
+func (g *Gadget) GlobalComponent(ElementType string, routeLevel int) Builder {
+	// But since it's no longer router-unaware (because of the routelevel),
+	// fix?
 	// Delegate to Router, Store, ...
 	if ElementType == "router-view" {
-		if rm := g.RouterState.CurrentRoute.Next(); rm != nil {
+		if rm := g.RouterState.CurrentRoute.Get(routeLevel); rm != nil {
 			return rm.Route.Component
 		}
 	} else if ElementType == "router-link" {
@@ -108,9 +110,7 @@ func (g *Gadget) SingleLoop() {
 		work.Run()
 	}
 
-	// XXX yuck
-	g.RouterState.CurrentRoute.Level = 0
-	changes := g.App.BuildDiff(nil)
+	changes := g.App.BuildDiff(nil, 0)
 
 	changes.ApplyChanges(g.Bridge)
 }

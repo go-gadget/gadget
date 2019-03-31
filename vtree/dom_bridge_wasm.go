@@ -77,15 +77,21 @@ func (b *DomBridge) HandleSpecialAttribute(Target Node, action string, value str
 			return
 		}
 
-		cb := func(i []js.Value) {
-			j.J("!")
+		// go 1.11:
+		// cb := func([]js.Value) {
+		// 	handler()
+		// }
+		cb := func(js.Value, []js.Value) interface{} {
 			handler()
+			return nil
 		}
 		// value is not unique enough
 		// set onclick etc
 
 		// onclick if action == "click" XXX
-		e.Set("onclick", js.NewCallback(cb))
+		// go 1.11:
+		// e.Set("onclick", js.NewCallback(cb))
+		e.Set("onclick", js.FuncOf(cb))
 		j.J("onclick set to ", value)
 	}
 }

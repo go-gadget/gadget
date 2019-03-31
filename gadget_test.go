@@ -550,9 +550,11 @@ func TestRoutes(t *testing.T) {
 		}
 		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
+			return
 		}
 		if l := len(g.App.Mounts[0].Component.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
+			return
 		}
 		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2a</div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)

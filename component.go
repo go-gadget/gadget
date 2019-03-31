@@ -194,7 +194,7 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 	return props
 }
 
-func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeSet) {
+func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (res vtree.ChangeSet) {
 
 	// collect changesets
 	var cs []vtree.ChangeSet
@@ -202,6 +202,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 	// Invoked when something component-like is encountered. Includes <router-view>
 	ComponentHandler := func(componentElement *vtree.Element) {
 		var builder Builder
+
 		if componentElement.Type != "router-view" {
 			for _, m := range g.Mounts {
 				if m.HasComponent(componentElement) {
@@ -219,7 +220,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 						// break
 					}
 					Props := m.Component.ExtractProps(componentElement)
-					changes := m.Component.BuildDiff(Props)
+					changes := m.Component.BuildDiff(Props, routeLevel+1)
 					cs = append(cs, changes)
 					return
 				}
@@ -229,8 +230,14 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 		// Build the component, if possible
 		childcomps := g.Comp.Components()
 
+		routeLevelInc := 0
+
 		if builder = childcomps[componentElement.Type]; builder == nil {
-			builder = g.Gadget.GlobalComponent(componentElement.Type)
+			builder = g.Gadget.GlobalComponent(componentElement.Type, routeLevel)
+			// XXX hacky, ugly
+			if componentElement.Type == "router-view" {
+				routeLevelInc = 1
+			}
 		}
 
 		if builder != nil {
@@ -238,7 +245,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 			wc := g.Gadget.NewComponent(builder)
 			m := g.Mount(wc, componentElement)
 			Props := m.Component.ExtractProps(componentElement)
-			changes := m.Component.BuildDiff(Props)
+			changes := m.Component.BuildDiff(Props, routeLevel+routeLevelInc)
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
 					ach.Parent = m.Point
