@@ -196,34 +196,36 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 
 func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (res vtree.ChangeSet) {
 
+	j.J("BuildDiff, level", routeLevel)
 	// collect changesets
 	var cs []vtree.ChangeSet
 
 	// Invoked when something component-like is encountered. Includes <router-view>
 	ComponentHandler := func(componentElement *vtree.Element) {
 		var builder Builder
+		j.J("CH", componentElement.Type, len(g.Mounts))
 
-		if componentElement.Type != "router-view" {
-			for _, m := range g.Mounts {
-				if m.HasComponent(componentElement) {
-					// This will be true for a router-view, even if the inner component changes.
-					if componentElement.Type == "router-view" {
-						j.J("It's a router-view!")
-						// check if it has changed.
-						// If so, delete old one.
-						// builder = g.Gadget.GlobalComponent(componentElement.Type)
-						// wc := g.Gadget.NewComponent(builder)
-						// m.Component = wc
-						// ONLY IF CHANGE!
-						cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: componentElement.Children[0]}})
-						m.ToBeRemoved = true
-						break
-					}
-					Props := m.Component.ExtractProps(componentElement)
-					changes := m.Component.BuildDiff(Props, routeLevel+1)
-					cs = append(cs, changes)
-					return
+		for _, m := range g.Mounts {
+			if m.HasComponent(componentElement) {
+				// This will be true for a router-view, even if the inner component changes.
+				j.J("C", componentElement.Type)
+				if componentElement.Type == "router-view" {
+					j.J("It's a router-view!")
+					// check if it has changed.
+					// If so, delete old one.
+					// builder = g.Gadget.GlobalComponent(componentElement.Type)
+					// wc := g.Gadget.NewComponent(builder)
+					// m.Component = wc
+					// ONLY IF CHANGE!
+					cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.ExecutedTree}})
+					builder = g.Gadget.GlobalComponent(componentElement.Type, routeLevel)
+					nc := g.Gadget.NewComponent(builder)
+					m.Component = nc
 				}
+				Props := m.Component.ExtractProps(componentElement)
+				changes := m.Component.BuildDiff(Props, routeLevel+1)
+				cs = append(cs, changes)
+				return
 			}
 		}
 
@@ -244,6 +246,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (r
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
 			wc := g.Gadget.NewComponent(builder)
 			m := g.Mount(wc, componentElement)
+			j.J("Mounting!")
 			Props := m.Component.ExtractProps(componentElement)
 			changes := m.Component.BuildDiff(Props, routeLevel+routeLevelInc)
 			for _, ch := range changes {
@@ -293,7 +296,6 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (r
 	for i := len(cs) - 1; i >= 0; i-- {
 		res = append(res, cs[i]...)
 	}
-	j.J(res)
 	return res
 }
 

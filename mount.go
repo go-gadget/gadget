@@ -1,6 +1,10 @@
 package gadget
 
-import "github.com/go-gadget/gadget/vtree"
+import (
+	"fmt"
+
+	"github.com/go-gadget/gadget/vtree"
+)
 
 type Mount struct {
 	Component   *WrappedComponent
@@ -9,6 +13,7 @@ type Mount struct {
 }
 
 func (m *Mount) HasComponent(componentElement *vtree.Element) bool {
+	fmt.Printf("Comparing mounts %v and %v\n", m.Point.ID, componentElement.ID)
 	if m.Point == nil {
 		return false
 	}

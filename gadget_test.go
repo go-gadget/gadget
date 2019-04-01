@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
 
@@ -596,10 +597,12 @@ func TestRoutes(t *testing.T) {
 			<-g.Chan
 		}()
 		g.RouterState.TransitionToPath("/level1/123/level2a")
+		j.J("Loop 1")
 		g.SingleLoop()
+		j.J("Loop 2")
 		g.SingleLoop()
-		g.SingleLoop()
-		g.SingleLoop()
+		// g.SingleLoop()
+		// g.SingleLoop()
 
 		if l := len(g.App.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
