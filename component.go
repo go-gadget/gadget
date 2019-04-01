@@ -214,9 +214,9 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 						// wc := g.Gadget.NewComponent(builder)
 						// m.Component = wc
 						// ONLY IF CHANGE!
-						// cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: componentElement}})
-						// m.ToBeRemoved = true
-						// break
+						cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: componentElement.Children[0]}})
+						m.ToBeRemoved = true
+						break
 					}
 					Props := m.Component.ExtractProps(componentElement)
 					changes := m.Component.BuildDiff(Props)
@@ -286,6 +286,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable) (res vtree.ChangeS
 	for i := len(cs) - 1; i >= 0; i-- {
 		res = append(res, cs[i]...)
 	}
+	j.J(res)
 	return res
 }
 
