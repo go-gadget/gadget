@@ -4,7 +4,7 @@ package vtree
 
 import "syscall/js"
 
-func jsHandler(handler callable) js.Func {
+func jsHandler(handler callable) js.Callback {
 	cb := func([]js.Value) {
 		handler()
 	}

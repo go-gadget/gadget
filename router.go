@@ -68,6 +68,19 @@ func (cr *CurrentRoute) Get(level int) *RouteMatch {
 	return cr.Matches[level]
 }
 
+func (cr *CurrentRoute) PathID(level int) string {
+	if level == -1 {
+		level = len(cr.Matches)
+	}
+
+	parts := make([]string, level)
+	for i := 0; i < level; i++ {
+		parts[i] = cr.Matches[i].Route.Name
+	}
+
+	return strings.Join(parts, ".")
+}
+
 func (route Route) Parse(parts []string) ([]*RouteMatch, []string) {
 	routePath := strings.Trim(route.Path, "/")
 	if len(parts) == 0 {
@@ -156,16 +169,10 @@ func (router Router) BuildPath(name string, params map[string]string) string {
 }
 
 func (router Router) Parse(path string) *CurrentRoute {
-	fmt.Println("--- " + path + " ---")
 	path = strings.Trim(path, "/")
 	parts := strings.Split(path, "/")
 
-	for _, p := range parts {
-		fmt.Printf("[%s]\n", p)
-	}
-
-	for i, route := range router {
-		fmt.Printf("-> Loop %d\n", i)
+	for _, route := range router {
 		result, remainder := route.Parse(parts)
 		if result != nil && len(remainder) == 0 {
 			cr := &CurrentRoute{Matches: result, Params: make(map[string]string)}
