@@ -73,8 +73,8 @@ func (cr *CurrentRoute) PathID(level int) string {
 		level = len(cr.Matches)
 	}
 
-	parts := make([]string, level)
-	for i := 0; i < level; i++ {
+	parts := make([]string, level+1)
+	for i := 0; i <= level; i++ {
 		parts[i] = cr.Matches[i].Route.Name
 	}
 
