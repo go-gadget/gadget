@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
 
@@ -512,7 +511,7 @@ func TestForBindComponent(t *testing.T) {
 // nested loop using, e.g., [][]string
 
 func TestRoutes(t *testing.T) {
-	Level1Component := MakeDummyFactory("<div>1<router-view></router-view></div>", nil, nil)
+	Level1Component := MakeDummyFactory(`<div>1<router-view></router-view></div>`, nil, nil)
 	Level2aComponent := MakeDummyFactory("<div>2a</div>", nil, nil)
 	Level2bComponent := MakeDummyFactory("<div>2b</div>", nil, nil)
 
@@ -597,12 +596,10 @@ func TestRoutes(t *testing.T) {
 			<-g.Chan
 		}()
 		g.RouterState.TransitionToPath("/level1/123/level2a")
-		j.J("Loop 1")
 		g.SingleLoop()
-		j.J("Loop 2")
 		g.SingleLoop()
-		// g.SingleLoop()
-		// g.SingleLoop()
+		g.SingleLoop()
+		g.SingleLoop()
 
 		if l := len(g.App.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
@@ -616,7 +613,7 @@ func TestRoutes(t *testing.T) {
 		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2a</div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
-
 	})
-	// reset global state after each test?
+	// Stuff to test:
+	// Route doesn't change, param changes -> verify component updates (e.g. id)
 }
