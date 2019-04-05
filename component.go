@@ -207,7 +207,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (r
 			if m.HasComponent(componentElement) {
 				// This will be true for a router-view, even if the inner component changes.
 				if componentElement.Type == "router-view" {
-					// PathID identifies the route. If it changes, we need to update the component and remove the old
+					// PathID identifies the route. If it changes, we need to update the component and/or remove the old
 					if crPathID := g.Gadget.RouterState.CurrentRoute.PathID(routeLevel); m.PathID != crPathID {
 						cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.ExecutedTree}})
 						builder = g.Gadget.GlobalComponent(componentElement.Type, routeLevel)
