@@ -211,9 +211,14 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (r
 					if crPathID := g.Gadget.RouterState.CurrentRoute.PathID(routeLevel); m.PathID != crPathID {
 						cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.ExecutedTree}})
 						builder = g.Gadget.GlobalComponent(componentElement.Type, routeLevel)
-						nc := g.Gadget.NewComponent(builder)
-						m.Component = nc
-						m.PathID = crPathID
+						if builder != nil {
+							nc := g.Gadget.NewComponent(builder)
+							m.Component = nc
+							m.PathID = crPathID
+						} else {
+							m.ToBeRemoved = true
+							return
+						}
 					}
 				}
 				Props := m.Component.ExtractProps(componentElement)
@@ -232,7 +237,8 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (r
 		if builder = childcomps[componentElement.Type]; builder == nil {
 			builder = g.Gadget.GlobalComponent(componentElement.Type, routeLevel)
 			// XXX hacky, ugly
-			if componentElement.Type == "router-view" {
+			// We need magic here to load the "index" route, if any.
+			if builder != nil && componentElement.Type == "router-view" {
 				routeLevelInc = 1
 				PathID = g.Gadget.RouterState.CurrentRoute.PathID(routeLevel)
 			}

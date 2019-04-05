@@ -651,6 +651,50 @@ func TestRoutes(t *testing.T) {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
 	})
+
+	t.Run("Not all routes resolved", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
+		g.Router(router)
+
+		go func() {
+			<-g.Chan
+		}()
+		g.RouterState.TransitionToPath("/level1/123/")
+		g.SingleLoop()
+
+		if l := len(g.App.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+			return
+		}
+	})
+
+	t.Run("Transition up", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
+		g.Router(router)
+
+		go func() {
+			<-g.Chan
+			<-g.Chan
+		}()
+		g.RouterState.TransitionToPath("/level1/123/level2a")
+		g.SingleLoop()
+		g.RouterState.TransitionToPath("/level1/123/")
+		g.SingleLoop()
+
+		if l := len(g.App.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+		// The component disappeared
+		if l := len(g.App.Mounts[0].Component.Mounts); l != 0 {
+			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
+		}
+	})
 	// Stuff to test:
 	// Route doesn't change, param changes -> verify component updates (e.g. id)
 }

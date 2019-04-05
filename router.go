@@ -19,9 +19,17 @@ router := []Route{
 		Component: HomeComponent,
 	},
 	Route{
+		Path: "/user/",
+		Component: UserListComponent,
+	},
+	Route{
 		Path: "/user/:id",
 		Component: UserComponent,
 		Children: []Route{
+			Route{
+				Path: "",  // not suppported yet
+				Component: UserIndex
+			},
 			Route{
 				Path: "profile",
 				Component: UserProfile,
@@ -38,6 +46,8 @@ These routes are then set on Gadget, which will
 - on startup check the current path and map it to a component or a set of nested components
 - will detecct route changes (transitions) and rerender appropriaately
 
+TODO:
+- support index route (named "")
 */
 
 type Route struct {
@@ -73,6 +83,10 @@ func (cr *CurrentRoute) PathID(level int) string {
 		level = len(cr.Matches) - 1
 	}
 
+	if level >= len(cr.Matches) {
+		level = len(cr.Matches) - 1
+	}
+	fmt.Printf("PathID: level=%d, len=%d\n", level, len(cr.Matches))
 	parts := make([]string, level+1)
 	for i := 0; i <= level; i++ {
 		parts[i] = cr.Matches[i].Route.Name
