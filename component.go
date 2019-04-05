@@ -194,7 +194,41 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 	return props
 }
 
-func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (res vtree.ChangeSet) {
+type RouteTraverser struct {
+	level int
+	cr    *CurrentRoute
+}
+
+func NewRouteTraverser(cr *CurrentRoute) *RouteTraverser {
+	return &RouteTraverser{0, cr}
+}
+
+func (rt *RouteTraverser) PathID() string {
+	return rt.cr.PathID(rt.level)
+}
+
+func (rt *RouteTraverser) Component(ElementType string) Builder {
+	if ElementType == "router-view" {
+		if rm := rt.cr.Get(rt.level); rm != nil {
+			return rm.Route.Component
+		}
+	} else if ElementType == "router-link" {
+		return RouterLinkBuilder
+	}
+	return nil
+}
+
+/*
+  In stead of up/down, return a new traverser with increased level and a component,
+  if it's a router-view
+
+*/
+
+func (rt *RouteTraverser) Up() *RouteTraverser {
+	return &RouteTraverser{rt.level + 1, rt.cr}
+}
+
+func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser) (res vtree.ChangeSet) {
 
 	// collect changesets
 	var cs []vtree.ChangeSet
@@ -203,15 +237,16 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (r
 	ComponentHandler := func(componentElement *vtree.Element) {
 		var builder Builder
 
+		// First check if the component is already mounted. If so, it can be a router-view
+		// that changes component, an existing component with different props
 		for _, m := range g.Mounts {
 			if m.HasComponent(componentElement) {
 				// This will be true for a router-view, even if the inner component changes.
 				if componentElement.Type == "router-view" {
 					// PathID identifies the route. If it changes, we need to update the component and/or remove the old
-					if crPathID := g.Gadget.RouterState.CurrentRoute.PathID(routeLevel); m.PathID != crPathID {
+					if crPathID := rt.PathID(); m.PathID != crPathID {
 						cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.ExecutedTree}})
-						builder = g.Gadget.GlobalComponent(componentElement.Type, routeLevel)
-						if builder != nil {
+						if builder = rt.Component(componentElement.Type); builder != nil {
 							nc := g.Gadget.NewComponent(builder)
 							m.Component = nc
 							m.PathID = crPathID
@@ -220,27 +255,27 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (r
 							return
 						}
 					}
+					rt = rt.Up()
 				}
 				Props := m.Component.ExtractProps(componentElement)
-				changes := m.Component.BuildDiff(Props, routeLevel+1)
+				changes := m.Component.BuildDiff(Props, rt)
 				cs = append(cs, changes)
 				return
 			}
 		}
 
-		// Build the component, if possible
+		// At this point, it was not an already mounted component
 		childcomps := g.Comp.Components()
 
-		routeLevelInc := 0
 		PathID := ""
 
 		if builder = childcomps[componentElement.Type]; builder == nil {
-			builder = g.Gadget.GlobalComponent(componentElement.Type, routeLevel)
+			builder = rt.Component(componentElement.Type)
 			// XXX hacky, ugly
 			// We need magic here to load the "index" route, if any.
 			if builder != nil && componentElement.Type == "router-view" {
-				routeLevelInc = 1
-				PathID = g.Gadget.RouterState.CurrentRoute.PathID(routeLevel)
+				rt = rt.Up()
+				PathID = rt.PathID()
 			}
 		}
 
@@ -252,7 +287,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, routeLevel int) (r
 			m.PathID = PathID
 
 			Props := m.Component.ExtractProps(componentElement)
-			changes := m.Component.BuildDiff(Props, routeLevel+routeLevelInc)
+			changes := m.Component.BuildDiff(Props, rt)
 			for _, ch := range changes {
 				if ach, ok := ch.(*vtree.AddChange); ok && ach.Parent == nil {
 					ach.Parent = m.Point
