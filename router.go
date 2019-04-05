@@ -86,7 +86,7 @@ func (cr *CurrentRoute) PathID(level int) string {
 	if level >= len(cr.Matches) {
 		level = len(cr.Matches) - 1
 	}
-	fmt.Printf("PathID: level=%d, len=%d\n", level, len(cr.Matches))
+
 	parts := make([]string, level+1)
 	for i := 0; i <= level; i++ {
 		parts[i] = cr.Matches[i].Route.Name
@@ -274,6 +274,7 @@ func (rs *RouterState) TransitionToName(name string, params map[string]string) {
 
 type RouterLinkComponent struct {
 	BaseComponent
+
 	Id string
 	To string
 }
