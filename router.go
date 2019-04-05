@@ -70,7 +70,7 @@ func (cr *CurrentRoute) Get(level int) *RouteMatch {
 
 func (cr *CurrentRoute) PathID(level int) string {
 	if level == -1 {
-		level = len(cr.Matches)
+		level = len(cr.Matches) - 1
 	}
 
 	parts := make([]string, level+1)
@@ -197,6 +197,33 @@ func GetRouter() *Router {
 	return registry.Get("router").(*Router)
 }
 
+type TransitionAction struct {
+	oldPath string
+	newPath string
+}
+
+func (t *TransitionAction) Run() {
+}
+
+type RouterState struct {
+	Router       Router
+	CurrentRoute *CurrentRoute
+	Route404     Route
+	oldPath      string
+	newPath      string
+	Update       chan Action
+}
+
+func NewRouterState() *RouterState {
+	rs := &RouterState{}
+	rs.Route404 = Route{
+		Name:      "404",
+		Path:      "",
+		Component: GenerateComponent("<div>404 - not found</div>", nil, nil),
+	}
+	return rs
+}
+
 func SetRouterState(state *RouterState) {
 	registry := GetRegistry()
 	registry.Register("router-state", state)
@@ -207,28 +234,19 @@ func GetRouterState() *RouterState {
 	return registry.Get("router-state").(*RouterState)
 }
 
-type RouterState struct {
-	Router       Router
-	CurrentRoute *CurrentRoute
-	oldPath      string
-	newPath      string
-	Update       chan Action
-}
-
-type TransitionAction struct{}
-
-func (t *TransitionAction) Run() {
-
-}
-
 func (rs *RouterState) TransitionToPath(path string) {
 	j.J("Transition", path)
+	oldPath := rs.oldPath
 	rs.oldPath = path
 	bridge := GetRegistry().Get("bridge").(vtree.Subject)
 	bridge.SetLocation(path)
 
 	rs.CurrentRoute = rs.Router.Parse(path)
-	rs.Update <- &TransitionAction{} // rs.oldPath, rs.newPath}
+	if rs.CurrentRoute == nil {
+		// We could inject the actual path into a copy of the 404 route?
+		rs.CurrentRoute = &CurrentRoute{Matches: []*RouteMatch{&RouteMatch{Route: rs.Route404}}}
+	}
+	rs.Update <- &TransitionAction{oldPath, path}
 }
 
 func (rs *RouterState) TransitionToName(name string, params map[string]string) {

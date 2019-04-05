@@ -614,6 +614,43 @@ func TestRoutes(t *testing.T) {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
 	})
+
+	t.Run("Short path", func(t *testing.T) {
+		// effectively a 404
+		g := NewGadget(NewTestBridge())
+		g.Router(router)
+
+		go func() {
+			<-g.Chan
+		}()
+		g.RouterState.TransitionToPath("/level1/")
+		g.SingleLoop()
+
+		if l := len(g.App.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>404 - not found</div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+	})
+
+	t.Run("Test 404 fallback", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
+		g.Router(router)
+
+		go func() {
+			<-g.Chan
+		}()
+		g.RouterState.TransitionToPath("/x")
+		g.SingleLoop()
+
+		if l := len(g.App.Mounts); l != 1 {
+			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
+		}
+		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>404 - not found</div>" {
+			t.Errorf("Didn't get expected level1 template, got %s", r)
+		}
+	})
 	// Stuff to test:
 	// Route doesn't change, param changes -> verify component updates (e.g. id)
 }

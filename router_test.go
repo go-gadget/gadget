@@ -54,6 +54,13 @@ func TestRouter(t *testing.T) {
 			t.Errorf("Expected id to be in params and have value 123, got %v", v)
 		}
 	})
+	t.Run("Test missing id: /user/", func(t *testing.T) {
+		res := router.Parse("/user/")
+
+		if res != nil {
+			t.Error("Expected res to be nil")
+		}
+	})
 	t.Run("Test /user/123/profile", func(t *testing.T) {
 		res := router.Parse("/user/123/profile")
 
@@ -77,11 +84,11 @@ func TestRouter(t *testing.T) {
 	t.Run("Test full nested path id", func(t *testing.T) {
 		res := router.Parse("/user/123/profile")
 
-		if pID := res.PathID(1); pID != "User" {
+		if pID := res.PathID(0); pID != "User" {
 			t.Errorf("Didn't get expected PathID, got %s", pID)
 		}
 
-		if pID := res.PathID(2); pID != "User.UserProfile" {
+		if pID := res.PathID(1); pID != "User.UserProfile" {
 			t.Errorf("Didn't get expected PathID, got %s", pID)
 		}
 
@@ -95,6 +102,14 @@ func TestRouter(t *testing.T) {
 		if a != b {
 			t.Errorf("Expected PathID's to be identical, but got %s <-> %s", a, b)
 		}
+	})
+	t.Run("Test CurrentRoute full nested path id", func(t *testing.T) {
+		res := router.Parse("/user/123/profile")
+
+		rm := res.Matches
+
+		AssertRoute(t, rm[0]).Name("User").Params("id", "123")
+		AssertRoute(t, rm[1]).Name("UserProfile")
 	})
 }
 

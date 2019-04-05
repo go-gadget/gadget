@@ -18,7 +18,6 @@ type Gadget struct {
 	Bridge      vtree.Subject
 	Queue       []Action
 	Wakeup      chan bool
-	Routes      Router
 	App         *WrappedComponent
 	RouterState *RouterState
 }
@@ -28,7 +27,7 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 		Chan:        make(chan Action),
 		Bridge:      bridge,
 		Wakeup:      make(chan bool),
-		RouterState: &RouterState{},
+		RouterState: NewRouterState(),
 	}
 	g.App = g.NewComponent(GenerateComponent("<div>App<router-view></router-view></div>", nil, nil))
 	GetRegistry().Register("gadget", g)
@@ -41,7 +40,6 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 type Builder func() Component
 
 func (g *Gadget) Router(routes Router) {
-	g.Routes = routes
 	g.RouterState.Router = routes
 	// So either we make this global, or we structurally pass Gadget around
 	SetRouter(&routes)
@@ -143,7 +141,7 @@ func (g *Gadget) MainLoop() {
 	}()
 
 	// Set initial route
-	if g.Routes != nil {
+	if g.RouterState.Router != nil {
 		if url, err := url.Parse(g.Bridge.GetLocation()); err == nil {
 			g.RouterState.TransitionToPath(url.Path)
 		}
