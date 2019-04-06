@@ -272,6 +272,34 @@ func (rs *RouterState) TransitionToName(name string, params map[string]string) {
 	}
 }
 
+type RouteTraverser struct {
+	level int
+	cr    *CurrentRoute
+}
+
+func NewRouteTraverser(cr *CurrentRoute) *RouteTraverser {
+	return &RouteTraverser{0, cr}
+}
+
+func (rt *RouteTraverser) PathID() string {
+	return rt.cr.PathID(rt.level)
+}
+
+func (rt *RouteTraverser) Component(ElementType string) Builder {
+	if ElementType == "router-view" {
+		if rm := rt.cr.Get(rt.level); rm != nil {
+			return rm.Route.Component
+		}
+	} else if ElementType == "router-link" {
+		return RouterLinkBuilder
+	}
+	return nil
+}
+
+func (rt *RouteTraverser) Up() *RouteTraverser {
+	return &RouteTraverser{rt.level + 1, rt.cr}
+}
+
 type RouterLinkComponent struct {
 	BaseComponent
 

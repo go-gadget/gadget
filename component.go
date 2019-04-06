@@ -194,40 +194,6 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 	return props
 }
 
-type RouteTraverser struct {
-	level int
-	cr    *CurrentRoute
-}
-
-func NewRouteTraverser(cr *CurrentRoute) *RouteTraverser {
-	return &RouteTraverser{0, cr}
-}
-
-func (rt *RouteTraverser) PathID() string {
-	return rt.cr.PathID(rt.level)
-}
-
-func (rt *RouteTraverser) Component(ElementType string) Builder {
-	if ElementType == "router-view" {
-		if rm := rt.cr.Get(rt.level); rm != nil {
-			return rm.Route.Component
-		}
-	} else if ElementType == "router-link" {
-		return RouterLinkBuilder
-	}
-	return nil
-}
-
-/*
-  In stead of up/down, return a new traverser with increased level and a component,
-  if it's a router-view
-
-*/
-
-func (rt *RouteTraverser) Up() *RouteTraverser {
-	return &RouteTraverser{rt.level + 1, rt.cr}
-}
-
 func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser) (res vtree.ChangeSet) {
 
 	// collect changesets
