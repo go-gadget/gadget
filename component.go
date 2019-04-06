@@ -221,7 +221,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 							return
 						}
 					}
-					rt = rt.Up()
+					rt.Up()
 				}
 				Props := m.Component.ExtractProps(componentElement)
 				changes := m.Component.BuildDiff(Props, rt)
@@ -240,7 +240,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 			// XXX hacky, ugly
 			// We need magic here to load the "index" route, if any.
 			if builder != nil && componentElement.Type == "router-view" {
-				rt = rt.Up()
+				rt.Up()
 				PathID = rt.PathID()
 			}
 		}

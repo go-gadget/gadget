@@ -296,8 +296,8 @@ func (rt *RouteTraverser) Component(ElementType string) Builder {
 	return nil
 }
 
-func (rt *RouteTraverser) Up() *RouteTraverser {
-	return &RouteTraverser{rt.level + 1, rt.cr}
+func (rt *RouteTraverser) Up() {
+	rt.level++
 }
 
 type RouterLinkComponent struct {
