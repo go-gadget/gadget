@@ -32,7 +32,7 @@ import (
 type Handler func(chan Action)
 
 type Component interface {
-	Init()
+	Init(*ComponentState)
 	Props() []string
 	Template() string
 	Data() Storage
@@ -42,13 +42,15 @@ type Component interface {
 
 type BaseComponent struct {
 	Storage Storage
+	State   *ComponentState
 }
 
 func (b *BaseComponent) SetupStorage(storage Storage) {
 	b.Storage = storage
 }
 
-func (b *BaseComponent) Init() {
+func (b *BaseComponent) Init(s *ComponentState) {
+	b.State = s
 }
 
 func (b *BaseComponent) Props() []string {
@@ -82,13 +84,18 @@ func (a *UserAction) Run() {
 	a.component.HandleEvent(a.handler)
 }
 
-type WrappedComponent struct {
-	Comp           Component
+type ComponentState struct {
 	UnexecutedTree *vtree.Element
 	ExecutedTree   *vtree.Element
 	Update         chan Action
 	Mounts         []*Mount
 	Gadget         *Gadget
+}
+
+// "InstalledComponent"?
+type WrappedComponent struct {
+	Comp  Component
+	State *ComponentState
 }
 
 func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
@@ -109,7 +116,7 @@ func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 				// But this should be reversed: A click on a control
 				// creates an action (task). When handled, look up
 				// any handlers for it.
-				g.Update <- &UserAction{
+				g.State.Update <- &UserAction{
 					component: g,
 					node:      node,
 					handler:   vv,
@@ -154,7 +161,7 @@ func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer, props []*vtr
 	context := data.MakeContext()
 	// What to do if multi-element (g-for), or nil (g-if)? XXX
 	// always wrap component in <div> ?
-	tree := renderer.Render(g.UnexecutedTree, context)[0]
+	tree := renderer.Render(g.State.UnexecutedTree, context)[0]
 
 	// we need to add a way for the "bridge" to call actions
 	// this means just adding all Handlers() to all nodes,
@@ -173,8 +180,8 @@ func (g *WrappedComponent) Mount(c *WrappedComponent, point *vtree.Element) *Mou
 
 	// store node where mounted (or nil)
 	mount := &Mount{Component: c, Point: point, ToBeRemoved: false}
-	g.Mounts = append(g.Mounts, mount)
-	c.Update = g.Update
+	g.State.Mounts = append(g.State.Mounts, mount)
+	c.State.Update = g.State.Update
 	// c.Mounted() hook?
 	return mount
 }
@@ -186,7 +193,7 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 	for _, propName := range g.Comp.Props() {
 		if val, ok := componentElement.Attributes[propName]; ok {
 			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
-		} else if val, ok := g.Gadget.RouterState.CurrentRoute.Params[propName]; ok {
+		} else if val, ok := g.State.Gadget.RouterState.CurrentRoute.Params[propName]; ok {
 			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
 		}
 	}
@@ -205,15 +212,15 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 
 		// First check if the component is already mounted. If so, it can be a router-view
 		// that changes component, an existing component with different props
-		for _, m := range g.Mounts {
+		for _, m := range g.State.Mounts {
 			if m.HasComponent(componentElement) {
 				// This will be true for a router-view, even if the inner component changes.
 				if componentElement.Type == "router-view" {
 					// PathID identifies the route. If it changes, we need to update the component and/or remove the old
 					if crPathID := rt.PathID(); m.PathID != crPathID {
-						cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.ExecutedTree}})
+						cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.State.ExecutedTree}})
 						if builder = rt.Component(componentElement.Type); builder != nil {
-							nc := g.Gadget.NewComponent(builder)
+							nc := g.State.Gadget.NewComponent(builder)
 							m.Component = nc
 							m.PathID = crPathID
 						} else {
@@ -247,7 +254,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 
 		if builder != nil {
 			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
-			wc := g.Gadget.NewComponent(builder)
+			wc := g.State.Gadget.NewComponent(builder)
 			m := g.Mount(wc, componentElement)
 
 			m.PathID = PathID
@@ -269,14 +276,14 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 
 	var changes vtree.ChangeSet
 
-	if g.ExecutedTree == nil {
+	if g.State.ExecutedTree == nil {
 		changes = vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
 	} else {
-		changes = vtree.Diff(g.ExecutedTree, tree)
+		changes = vtree.Diff(g.State.ExecutedTree, tree)
 		for _, ch := range changes {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
-					for _, m := range g.Mounts {
+					for _, m := range g.State.Mounts {
 						if m.HasComponent(el) {
 							m.ToBeRemoved = true
 						}
@@ -287,15 +294,15 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 	}
 	cs = append(cs, changes)
 	var FilteredMounts []*Mount
-	for _, m := range g.Mounts {
+	for _, m := range g.State.Mounts {
 		if m.ToBeRemoved {
 			continue
 			// call some hook?
 		}
 		FilteredMounts = append(FilteredMounts, m)
 	}
-	g.Mounts = FilteredMounts
-	g.ExecutedTree = tree
+	g.State.Mounts = FilteredMounts
+	g.State.ExecutedTree = tree
 
 	// reverse over cs, build res
 	for i := len(cs) - 1; i >= 0; i-- {
@@ -305,7 +312,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 }
 
 func (g *WrappedComponent) HandleEvent(event string) {
-	g.Comp.Handlers()[event](g.Update)
+	g.Comp.Handlers()[event](g.State.Update)
 }
 
 // A GeneratedComponent is a component that's dynamically built, not declaratively

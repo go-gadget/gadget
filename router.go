@@ -307,9 +307,6 @@ type RouterLinkComponent struct {
 	To string
 }
 
-func (r *RouterLinkComponent) Init() {
-}
-
 func (r *RouterLinkComponent) Props() []string {
 	// support "*" - just send me all you got?
 	return []string{"Id", "To"}

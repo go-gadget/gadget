@@ -48,7 +48,8 @@ func (g *Gadget) Router(routes Router) {
 
 func (g *Gadget) Mount(c *WrappedComponent) {
 	g.App = c
-	c.Update = g.Chan
+	// yuck
+	c.State.Update = g.Chan
 }
 
 func (g *Gadget) SyncState(Tree vtree.Node) {
@@ -67,19 +68,20 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 // NewComponent creates a new WrappedComponent through the supplied Builder,
 // calling relevant hooks and doing necessary initialization
 func (g *Gadget) NewComponent(b Builder) *WrappedComponent {
-	comp := &WrappedComponent{Comp: b(), Update: nil}
-	comp.Gadget = g
+	state := &ComponentState{Update: nil, Gadget: g}
+	comp := &WrappedComponent{Comp: b(), State: state}
 
-	comp.Comp.Init()
-	comp.UnexecutedTree = vtree.Parse(comp.Comp.Template())
+	comp.Comp.Init(state)
+	// Call Init on WrappedComponent "Init", which handles this?
+	state.UnexecutedTree = vtree.Parse(comp.Comp.Template())
 	return comp
 }
 
 func (g *Gadget) SingleLoop() {
 
 	// Just sync entire tree. We can optimize this later
-	if g.App.ExecutedTree != nil {
-		tree := g.App.ExecutedTree
+	if g.App.State.ExecutedTree != nil {
+		tree := g.App.State.ExecutedTree
 		g.SyncState(tree)
 	}
 

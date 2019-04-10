@@ -85,11 +85,11 @@ func TestGadgetComponent(t *testing.T) {
 	g.Mount(component)
 	g.SingleLoop()
 
-	if len(g.App.Mounts) != 0 {
-		t.Errorf("Expected 0 mounted component, found %d", len(g.App.Mounts))
+	if len(g.App.State.Mounts) != 0 {
+		t.Errorf("Expected 0 mounted component, found %d", len(g.App.State.Mounts))
 	}
 
-	rendered := g.App.ExecutedTree.ToString()
+	rendered := g.App.State.ExecutedTree.ToString()
 
 	if rendered != "<div><p>Hi</p></div>" {
 		t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -119,17 +119,17 @@ func TestNestedComponents(t *testing.T) {
 		g, _ := SetupTestGadget()
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 
-		rendered = g.App.Mounts[0].Component.ExecutedTree.ToString()
+		rendered = g.App.State.Mounts[0].Component.State.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -141,16 +141,16 @@ func TestNestedComponents(t *testing.T) {
 		g.SingleLoop()
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-		rendered = g.App.Mounts[0].Component.ExecutedTree.ToString()
+		rendered = g.App.State.Mounts[0].Component.State.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -175,8 +175,8 @@ func TestNestedComponents(t *testing.T) {
 			t.Errorf("Unexpected extra Add actions. Expected %d, got %d",
 				count, tb.AddCount)
 		}
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted components, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted components, found %d", len(g.App.State.Mounts))
 		}
 	})
 }
@@ -213,8 +213,8 @@ func TestMultiNestedComponents(t *testing.T) {
 			g.SingleLoop()
 		}
 		// Main + non-conditional child
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted components, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted components, found %d", len(g.App.State.Mounts))
 		}
 	})
 	t.Run("Test multi loop even", func(t *testing.T) {
@@ -229,8 +229,8 @@ func TestMultiNestedComponents(t *testing.T) {
 			g.SingleLoop()
 		}
 		// Main + non-conditional child + conditional child
-		if len(g.App.Mounts) != 2 {
-			t.Errorf("Expected 2 mounted components, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 2 {
+			t.Errorf("Expected 2 mounted components, found %d", len(g.App.State.Mounts))
 		}
 	})
 }
@@ -258,11 +258,11 @@ func TestConditionalComponent(t *testing.T) {
 		component.RawSetValue("BoolVal", false)
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 0 {
-			t.Errorf("Expected 0 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 0 {
+			t.Errorf("Expected 0 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 
 		if rendered != "<div></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -273,16 +273,16 @@ func TestConditionalComponent(t *testing.T) {
 		component.RawSetValue("BoolVal", true)
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-		rendered = g.App.Mounts[0].Component.ExecutedTree.ToString()
+		rendered = g.App.State.Mounts[0].Component.State.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -295,11 +295,11 @@ func TestConditionalComponent(t *testing.T) {
 		component.RawSetValue("BoolVal", false)
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 0 {
-			t.Errorf("Expected 0 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 0 {
+			t.Errorf("Expected 0 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 
 		if rendered != "<div></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -313,16 +313,16 @@ func TestConditionalComponent(t *testing.T) {
 		component.RawSetValue("BoolVal", true)
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-		rendered = g.App.Mounts[0].Component.ExecutedTree.ToString()
+		rendered = g.App.State.Mounts[0].Component.State.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -339,16 +339,16 @@ func TestConditionalComponent(t *testing.T) {
 			g.SingleLoop()
 		}
 
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 
 		if rendered != "<div><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-		rendered = g.App.Mounts[0].Component.ExecutedTree.ToString()
+		rendered = g.App.State.Mounts[0].Component.State.ExecutedTree.ToString()
 
 		if rendered != "<b>I am the child</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -379,17 +379,17 @@ func TestForComponent(t *testing.T) {
 		component.RawSetValue("IntArrayVal", []int{1, 2, 3})
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 3 {
-			t.Errorf("Expected 3 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 3 {
+			t.Errorf("Expected 3 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 		if rendered != "<div><test-child></test-child><test-child></test-child><test-child></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 
-		for _, m := range g.App.Mounts {
-			rendered = m.Component.ExecutedTree.ToString()
+		for _, m := range g.App.State.Mounts {
+			rendered = m.Component.State.ExecutedTree.ToString()
 
 			if rendered != "<b>I am the child</b>" {
 				t.Errorf("Did not get expected rendered tree, got %s", rendered)
@@ -419,11 +419,11 @@ func TestComponentArgs(t *testing.T) {
 		g, _, _ := SetupTestGadget([]string{"StringVal"})
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.Mounts[0].Component.ExecutedTree.ToString()
+		rendered := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString()
 		if rendered != "<b>Hello World</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
@@ -448,11 +448,11 @@ func TestComponentArgs(t *testing.T) {
 		g.Mount(component)
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 1 {
-			t.Errorf("Expected 1 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.Mounts[0].Component.ExecutedTree.ToString()
+		rendered := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString()
 		if rendered != "<b>Hello World</b>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
@@ -482,18 +482,18 @@ func TestForBindComponent(t *testing.T) {
 		component.RawSetValue("IntArrayVal", []int{1, 2, 3})
 		g.SingleLoop()
 
-		if len(g.App.Mounts) != 3 {
-			t.Errorf("Expected 3 mounted component, found %d", len(g.App.Mounts))
+		if len(g.App.State.Mounts) != 3 {
+			t.Errorf("Expected 3 mounted component, found %d", len(g.App.State.Mounts))
 		}
 
-		rendered := g.App.ExecutedTree.ToString()
+		rendered := g.App.State.ExecutedTree.ToString()
 		if c := strings.Count(rendered, "<test-child"); c != 3 {
 			t.Errorf("Did not get expected number of components, got %d", c)
 		}
 
 		ids := make(map[vtree.ElementID]bool)
-		for i, m := range g.App.Mounts {
-			e := m.Component.ExecutedTree
+		for i, m := range g.App.State.Mounts {
+			e := m.Component.State.ExecutedTree
 			text := e.Children[0].(*vtree.Text).Text
 			ids[e.ID] = true
 
@@ -545,18 +545,18 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/123/level2a")
 		g.SingleLoop()
 
-		if l := len(g.App.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 			return
 		}
-		if l := len(g.App.Mounts[0].Component.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts[0].Component.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
 			return
 		}
-		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2a</div>" {
+		if r := g.App.State.Mounts[0].Component.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>2a</div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
 
@@ -574,16 +574,16 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/123/level2b")
 		g.SingleLoop()
 
-		if l := len(g.App.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
-		if l := len(g.App.Mounts[0].Component.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts[0].Component.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2b</div>" {
+		if r := g.App.State.Mounts[0].Component.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>2b</div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
 		// Possibly check for DeleteChange on old component?
@@ -601,16 +601,16 @@ func TestRoutes(t *testing.T) {
 		g.SingleLoop()
 		g.SingleLoop()
 
-		if l := len(g.App.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
-		if l := len(g.App.Mounts[0].Component.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts[0].Component.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>2a</div>" {
+		if r := g.App.State.Mounts[0].Component.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>2a</div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
 	})
@@ -626,10 +626,10 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/")
 		g.SingleLoop()
 
-		if l := len(g.App.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>404 - not found</div>" {
+		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>404 - not found</div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
 	})
@@ -644,10 +644,10 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/x")
 		g.SingleLoop()
 
-		if l := len(g.App.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>404 - not found</div>" {
+		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>404 - not found</div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
 	})
@@ -662,10 +662,10 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/123/")
 		g.SingleLoop()
 
-		if l := len(g.App.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 			return
 		}
@@ -684,14 +684,14 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/123/")
 		g.SingleLoop()
 
-		if l := len(g.App.Mounts); l != 1 {
+		if l := len(g.App.State.Mounts); l != 1 {
 			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
 		}
-		if r := g.App.Mounts[0].Component.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
+		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
 			t.Errorf("Didn't get expected level1 template, got %s", r)
 		}
 		// The component disappeared
-		if l := len(g.App.Mounts[0].Component.Mounts); l != 0 {
+		if l := len(g.App.State.Mounts[0].Component.State.Mounts); l != 0 {
 			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
 		}
 	})

@@ -5,6 +5,7 @@ import (
 )
 
 type Mount struct {
+	// "Component" is misleading name
 	Component   *WrappedComponent
 	Point       *vtree.Element
 	PathID      string
