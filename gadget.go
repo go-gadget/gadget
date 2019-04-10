@@ -18,7 +18,7 @@ type Gadget struct {
 	Bridge      vtree.Subject
 	Queue       []Action
 	Wakeup      chan bool
-	App         *WrappedComponent
+	App         *ComponentInstance
 	RouterState *RouterState
 }
 
@@ -46,7 +46,7 @@ func (g *Gadget) Router(routes Router) {
 	SetRouterState(g.RouterState)
 }
 
-func (g *Gadget) Mount(c *WrappedComponent) {
+func (g *Gadget) Mount(c *ComponentInstance) {
 	g.App = c
 	// yuck
 	c.State.Update = g.Chan
@@ -65,15 +65,13 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
-// NewComponent creates a new WrappedComponent through the supplied Builder,
+// NewComponent creates a new ComponentInstance through the supplied Builder,
 // calling relevant hooks and doing necessary initialization
-func (g *Gadget) NewComponent(b Builder) *WrappedComponent {
+func (g *Gadget) NewComponent(b Builder) *ComponentInstance {
 	state := &ComponentState{Update: nil, Gadget: g}
-	comp := &WrappedComponent{Comp: b(), State: state}
+	comp := &ComponentInstance{Comp: b(), State: state}
 
-	comp.Comp.Init(state)
-	// Call Init on WrappedComponent "Init", which handles this?
-	state.UnexecutedTree = vtree.Parse(comp.Comp.Template())
+	comp.Init()
 	return comp
 }
 

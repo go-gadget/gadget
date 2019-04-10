@@ -182,7 +182,7 @@ func TestNestedComponents(t *testing.T) {
 }
 
 func TestMultiNestedComponents(t *testing.T) {
-	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+	SetupTestGadget := func() (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
 		ChildBuilder := MakeDummyFactory(
@@ -236,7 +236,7 @@ func TestMultiNestedComponents(t *testing.T) {
 }
 
 func TestConditionalComponent(t *testing.T) {
-	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+	SetupTestGadget := func() (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
 		ChildBuilder := MakeDummyFactory(
@@ -357,7 +357,7 @@ func TestConditionalComponent(t *testing.T) {
 }
 
 func TestForComponent(t *testing.T) {
-	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+	SetupTestGadget := func() (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
 		ChildBuilder := MakeDummyFactory(
@@ -399,7 +399,7 @@ func TestForComponent(t *testing.T) {
 }
 
 func TestComponentArgs(t *testing.T) {
-	SetupTestGadget := func(Props []string) (*Gadget, *TestBridge, *WrappedComponent) {
+	SetupTestGadget := func(Props []string) (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
 		ChildBuilder := MakeDummyFactory(
@@ -460,7 +460,7 @@ func TestComponentArgs(t *testing.T) {
 }
 
 func TestForBindComponent(t *testing.T) {
-	SetupTestGadget := func() (*Gadget, *TestBridge, *WrappedComponent) {
+	SetupTestGadget := func() (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
 		ChildBuilder := MakeDummyFactory(

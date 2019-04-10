@@ -75,7 +75,7 @@ func (b *BaseComponent) Components() map[string]Builder {
 }
 
 type UserAction struct {
-	component *WrappedComponent
+	component *ComponentInstance
 	node      vtree.Node
 	handler   string
 }
@@ -92,21 +92,25 @@ type ComponentState struct {
 	Gadget         *Gadget
 }
 
-// "InstalledComponent"?
-type WrappedComponent struct {
+type ComponentInstance struct {
 	Comp  Component
 	State *ComponentState
 }
 
-func (g *WrappedComponent) RawSetValue(key string, val interface{}) {
+func (ci *ComponentInstance) Init() {
+	ci.Comp.Init(ci.State)
+	ci.State.UnexecutedTree = vtree.Parse(ci.Comp.Template())
+}
+
+func (g *ComponentInstance) RawSetValue(key string, val interface{}) {
 	g.Comp.Data().RawSetValue(key, val)
 }
 
-func (g *WrappedComponent) SetValue(key string, val interface{}) {
+func (g *ComponentInstance) SetValue(key string, val interface{}) {
 	g.RawSetValue(key, val)
 }
 
-func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
+func (g *ComponentInstance) bindSpecials(node *vtree.Element) {
 	// recusively do stuff
 	for k, v := range node.Attributes {
 		if k == "g-click" {
@@ -143,7 +147,7 @@ func (g *WrappedComponent) bindSpecials(node *vtree.Element) {
 	}
 }
 
-func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer, props []*vtree.Variable) *vtree.Element {
+func (g *ComponentInstance) Execute(handler vtree.ComponentRenderer, props []*vtree.Variable) *vtree.Element {
 	// This is actually a 2-step proces, just like builtin templates:
 	// - compile, compiles text to tree
 	// - render, evaluates expressions
@@ -175,7 +179,7 @@ func (g *WrappedComponent) Execute(handler vtree.ComponentRenderer, props []*vtr
 }
 
 // Mount a comonent somewhere within this component, and store it.
-func (g *WrappedComponent) Mount(c *WrappedComponent, point *vtree.Element) *Mount {
+func (g *ComponentInstance) Mount(c *ComponentInstance, point *vtree.Element) *Mount {
 	// probably needs lock
 
 	// store node where mounted (or nil)
@@ -187,7 +191,7 @@ func (g *WrappedComponent) Mount(c *WrappedComponent, point *vtree.Element) *Mou
 }
 
 // ExtractProps checks which props a component accepts and fetches these from the elements attributes
-func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtree.Variable {
+func (g *ComponentInstance) ExtractProps(componentElement *vtree.Element) []*vtree.Variable {
 	var props []*vtree.Variable
 
 	for _, propName := range g.Comp.Props() {
@@ -201,7 +205,7 @@ func (g *WrappedComponent) ExtractProps(componentElement *vtree.Element) []*vtre
 	return props
 }
 
-func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser) (res vtree.ChangeSet) {
+func (g *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTraverser) (res vtree.ChangeSet) {
 
 	// collect changesets
 	var cs []vtree.ChangeSet
@@ -253,7 +257,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 		}
 
 		if builder != nil {
-			// builder is a ComponentBuilder, resulting in a Component, not a WrappedComponent
+			// builder is a ComponentBuilder, resulting in a Component, not a ComponentInstance
 			wc := g.State.Gadget.NewComponent(builder)
 			m := g.Mount(wc, componentElement)
 
@@ -311,7 +315,7 @@ func (g *WrappedComponent) BuildDiff(props []*vtree.Variable, rt *RouteTraverser
 	return res
 }
 
-func (g *WrappedComponent) HandleEvent(event string) {
+func (g *ComponentInstance) HandleEvent(event string) {
 	g.Comp.Handlers()[event](g.State.Update)
 }
 

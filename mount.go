@@ -5,8 +5,7 @@ import (
 )
 
 type Mount struct {
-	// "Component" is misleading name
-	Component   *WrappedComponent
+	Component   *ComponentInstance
 	Point       *vtree.Element
 	PathID      string
 	ToBeRemoved bool
