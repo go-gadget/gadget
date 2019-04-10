@@ -227,6 +227,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		}
 
 		// At this point, it was not an already mounted component
+		fmt.Printf("Getting comps for %v\n", ci.Comp.Components())
 		childcomps := ci.Comp.Components()
 
 		if builder = childcomps[componentElement.Type]; builder == nil {

@@ -338,16 +338,21 @@ var RouterLinkComponentFactory = &ComponentFactory{
 
 type RouterViewComponent struct {
 	BaseComponent
-	firstSlot bool
-	level     int
-	state     map[string]*ComponentFactory
+	firstSlot  bool
+	secondSlot bool // XXX need "not value" (or g-else) in g-value!
+	level      int
+	state      map[string]*ComponentFactory
+	tpl        string
 }
 
 func (r *RouterViewComponent) Template() string {
-	return "<div>[1]<x-component1>??</x-component1>[1][2]<x-component2>!!</x-component2>[2]</div>"
+	fmt.Println("TEMPLATE CALL !!!!!!!")
+	return `<div>[1]<x-component1 g-if="firstSlot">_1_<x-component1>[/1]
+	              [2]<x-component2 g-if="secondSlot">_2_</x-component2>[/2]</div>`
 }
 
 func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
+	fmt.Println("Returning Components():", r.state)
 	/*
 	 * Hoe verwijderen we componenten?
 	 * Verschillende componenten?
@@ -359,7 +364,11 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 	 Wat is hier gaande? We hebben 2 fake componenten,
 	 dus "ComponentHandler" wordt 2x aangeroepen binnen dit routerview
 	 component. De eerste keer
+
+	 Omdat er gerecurst wordt, springt hij terug van level 2 naar component
+	 0
 	*/
+
 	var m *Mount
 
 	rt := r.State.Gadget.Traverser
@@ -370,6 +379,7 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 		r.level = rt.level
 	} else if r.level != rt.level {
 		// been here before, return state
+		// panic("Raar?")
 		fmt.Println("Been at this level before, return state", r.state)
 		return r.state
 	}
@@ -398,7 +408,7 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 			fmt.Printf("@@@@@@ No component at level %d, but have mount %v\n", rt.level-1, m)
 			m.ToBeRemoved = true
 		}
-		return nil
+		return r.state
 	}
 
 	if MountedName != c.Route.Component.Name {
@@ -407,6 +417,7 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 			fmt.Println("There's a mount, so remove+toggle")
 			m.ToBeRemoved = true
 			r.firstSlot = !r.firstSlot
+			r.secondSlot = !r.firstSlot
 		}
 	} else {
 		fmt.Println("Route unchanged, yay!", MountedName)
@@ -419,14 +430,13 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 		slot = "x-component2"
 	}
 	r.state[slot] = c.Route.Component
-	fmt.Println("Returning Components():", r.state)
 	return r.state
 }
 
 var RouterViewComponentFactory = &ComponentFactory{
 	Name: "gadget.router.RouterView",
 	Builder: func() Component {
-		c := &RouterViewComponent{firstSlot: true, level: -1}
+		c := &RouterViewComponent{firstSlot: true, secondSlot: false, level: -1}
 		c.SetupStorage(NewStructStorage(c))
 		return c
 	},
