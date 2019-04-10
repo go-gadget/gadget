@@ -7,7 +7,7 @@ import (
 type Mount struct {
 	Component   *ComponentInstance
 	Point       *vtree.Element
-	PathID      string
+	Name        string
 	ToBeRemoved bool
 }
 

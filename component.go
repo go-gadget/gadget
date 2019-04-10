@@ -1,6 +1,7 @@
 package gadget
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/go-gadget/gadget/j"
@@ -15,11 +16,15 @@ type Component interface {
 	Template() string
 	Data() Storage
 	Handlers() map[string]Handler // Actions ?
-	Components() map[string]ComponentFactory
+	Components() map[string]*ComponentFactory
 }
 
-// A ComponentFactory is anything that creates s Component
-type ComponentFactory func() Component
+type ComponentBuilder func() Component
+
+type ComponentFactory struct {
+	Name    string
+	Builder ComponentBuilder
+}
 
 type BaseComponent struct {
 	Storage Storage
@@ -51,7 +56,7 @@ func (b *BaseComponent) Handlers() map[string]Handler {
 	return nil
 }
 
-func (b *BaseComponent) Components() map[string]ComponentFactory {
+func (b *BaseComponent) Components() map[string]*ComponentFactory {
 	return nil
 }
 
@@ -192,28 +197,28 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 
 	// Invoked when something component-like is encountered. Includes <router-view>
 	ComponentHandler := func(componentElement *vtree.Element) {
-		var builder ComponentFactory
+		var builder *ComponentFactory
 
 		// First check if the component is already mounted. If so, it can be a router-view
 		// that changes component, an existing component with different props
 		for _, m := range ci.State.Mounts {
 			if m.HasComponent(componentElement) {
 				// This will be true for a router-view, even if the inner component changes.
-				if componentElement.Type == "router-view" {
-					// PathID identifies the route. If it changes, we need to update the component and/or remove the old
-					if crPathID := rt.PathID(); m.PathID != crPathID {
-						cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.State.ExecutedTree}})
-						if builder = rt.Component(componentElement.Type); builder != nil {
-							nc := ci.State.Gadget.NewComponent(builder)
-							m.Component = nc
-							m.PathID = crPathID
-						} else {
-							m.ToBeRemoved = true
-							return
-						}
-					}
-					rt.Up()
-				}
+				// if componentElement.Type == "router-view" {
+				// 	// PathID identifies the route. If it changes, we need to update the component and/or remove the old
+				// 	if crPathID := rt.PathID(); m.PathID != crPathID {
+				// 		cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.State.ExecutedTree}})
+				// 		if builder = rt.component(componentelement.type); builder != nil {
+				// 			nc := ci.State.Gadget.NewComponent(builder)
+				// 			m.Component = nc
+				// 			m.PathID = crPathID
+				// 		} else {
+				// 			m.ToBeRemoved = true
+				// 			return
+				// 		}
+				// 	}
+				// 	rt.Up()
+				// }
 				Props := m.Component.ExtractProps(componentElement)
 				changes := m.Component.BuildDiff(Props, rt)
 				cs = append(cs, changes)
@@ -224,24 +229,25 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		// At this point, it was not an already mounted component
 		childcomps := ci.Comp.Components()
 
-		PathID := ""
-
 		if builder = childcomps[componentElement.Type]; builder == nil {
 			builder = rt.Component(componentElement.Type)
+			fmt.Println("Trying rt component", builder)
 			// XXX hacky, ugly
 			// We need magic here to load the "index" route, if any.
-			if builder != nil && componentElement.Type == "router-view" {
-				rt.Up()
-				PathID = rt.PathID()
-			}
+			// if builder != nil && componentElement.Type == "router-view" {
+			// 	rt.Up()
+			// 	PathID = rt.PathID()
+			// }
 		}
 
 		if builder != nil {
 			// builder is a ComponentComponentFactory, resulting in a Component, not a ComponentInstance
-			wc := ci.State.Gadget.NewComponent(builder)
-			m := ci.Mount(wc, componentElement)
+			cf := ci.State.Gadget.NewComponent(builder)
+			m := ci.Mount(cf, componentElement)
 
-			m.PathID = PathID
+			// m.PathID = PathID
+			m.Name = builder.Name
+			fmt.Printf("Mounting %v under name %v\n", cf, m.Name)
 
 			Props := m.Component.ExtractProps(componentElement)
 			changes := m.Component.BuildDiff(Props, rt)
@@ -303,7 +309,7 @@ func (ci *ComponentInstance) HandleEvent(event string) {
 type GeneratedComponent struct {
 	BaseComponent
 	gTemplate   string
-	gComponents map[string]ComponentFactory
+	gComponents map[string]*ComponentFactory
 	gProps      []string
 }
 
@@ -318,18 +324,21 @@ func (g *GeneratedComponent) Template() string {
 }
 
 // Components returns the BC's Components, if any
-func (g *GeneratedComponent) Components() map[string]ComponentFactory {
+func (g *GeneratedComponent) Components() map[string]*ComponentFactory {
 	return g.gComponents
 }
 
 // GenerateComponent generates a Component (ComponentFactory) based on the supplied arguments
-func GenerateComponent(Template string, Components map[string]ComponentFactory,
-	Props []string) ComponentFactory {
-	return func() Component {
-		s := &GeneratedComponent{gTemplate: Template, gComponents: Components,
-			gProps: Props}
-		storage := NewMapStorage()
-		s.SetupStorage(storage)
-		return s
+func GenerateComponentFactory(Name string, Template string, Components map[string]*ComponentFactory,
+	Props []string) *ComponentFactory {
+	return &ComponentFactory{
+		Name: Name,
+		Builder: func() Component {
+			s := &GeneratedComponent{gTemplate: Template, gComponents: Components,
+				gProps: Props}
+			storage := NewMapStorage()
+			s.SetupStorage(storage)
+			return s
+		},
 	}
 }

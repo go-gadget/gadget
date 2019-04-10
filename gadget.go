@@ -20,6 +20,7 @@ type Gadget struct {
 	Wakeup      chan bool
 	App         *ComponentInstance
 	RouterState *RouterState
+	Traverser   *RouteTraverser
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
@@ -29,7 +30,7 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 		Wakeup:      make(chan bool),
 		RouterState: NewRouterState(),
 	}
-	g.App = g.NewComponent(GenerateComponent("<div>App<router-view></router-view></div>", nil, nil))
+	g.App = g.NewComponent(GenerateComponentFactory("gadget.gadget.App", "<div>App<router-view></router-view></div>", nil, nil))
 	GetRegistry().Register("gadget", g)
 	GetRegistry().Register("bridge", bridge)
 	g.RouterState.Update = g.Update
@@ -60,9 +61,9 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
-func (g *Gadget) NewComponent(b ComponentFactory) *ComponentInstance {
+func (g *Gadget) NewComponent(b *ComponentFactory) *ComponentInstance {
 	state := &ComponentState{Update: g.Update, Gadget: g}
-	comp := &ComponentInstance{Comp: b(), State: state}
+	comp := &ComponentInstance{Comp: b.Builder(), State: state}
 
 	comp.Init()
 	return comp
@@ -86,8 +87,8 @@ func (g *Gadget) SingleLoop() {
 		work.Run()
 	}
 
-	rt := NewRouteTraverser(g.RouterState.CurrentRoute)
-	changes := g.App.BuildDiff(nil, rt)
+	g.Traverser = NewRouteTraverser(g.RouterState.CurrentRoute)
+	changes := g.App.BuildDiff(nil, g.Traverser)
 
 	changes.ApplyChanges(g.Bridge)
 }
@@ -99,8 +100,8 @@ func (g *Gadget) MainLoop() {
 		for {
 			// If nothing is feeding g.Wakeup, we get the "all goroutines are asleep"
 			g.Wakeup <- false
-			time.Sleep(10 * time.Second)
-			j.J("Just slept 10 sec")
+			time.Sleep(100 * time.Second)
+			j.J("Just slept 100 sec")
 		}
 	}()
 

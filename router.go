@@ -51,9 +51,10 @@ TODO:
 */
 
 type Route struct {
-	Path      string
-	Name      string
-	Component ComponentFactory
+	Path string
+	Name string
+	// rename to Factory ?
+	Component *ComponentFactory
 	Children  Router
 }
 
@@ -233,7 +234,7 @@ func NewRouterState() *RouterState {
 	rs.Route404 = Route{
 		Name:      "404",
 		Path:      "",
-		Component: GenerateComponent("<div>404 - not found</div>", nil, nil),
+		Component: GenerateComponentFactory("gadget.router.404", "<div>404 - not found</div>", nil, nil),
 	}
 	return rs
 }
@@ -285,11 +286,12 @@ func (rt *RouteTraverser) PathID() string {
 	return rt.cr.PathID(rt.level)
 }
 
-func (rt *RouteTraverser) Component(ElementType string) ComponentFactory {
+func (rt *RouteTraverser) Component(ElementType string) *ComponentFactory {
 	if ElementType == "router-view" {
-		if rm := rt.cr.Get(rt.level); rm != nil {
-			return rm.Route.Component
-		}
+		return RouterViewComponentFactory
+		// if rm := rt.cr.Get(rt.level); rm != nil {
+		// 	return rm.Route.Component
+		// }
 	} else if ElementType == "router-link" {
 		return RouterLinkComponentFactory
 	}
@@ -324,8 +326,83 @@ func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	}
 }
 
-func RouterLinkComponentFactory() Component {
-	c := &RouterLinkComponent{}
-	c.SetupStorage(NewStructStorage(c))
-	return c
+var RouterLinkComponentFactory = &ComponentFactory{
+	Name: "gadget.router.RouterLink",
+	Builder: func() Component {
+		c := &RouterLinkComponent{}
+		c.SetupStorage(NewStructStorage(c))
+		return c
+	},
+}
+
+type RouterViewComponent struct {
+	BaseComponent
+	firstSlot bool
+}
+
+func (r *RouterViewComponent) Template() string {
+	return "<div>[1]<x-component1>??</x-component1>[1][2]<x-component2>!!</x-component2>[2]</div>"
+}
+
+func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
+	/*
+	 * Hoe verwijderen we componenten?
+	 * Verschillende componenten?
+	 *
+	 * Als nog geen component: return component in slot 1
+	 * Als wel component maar geen wijziging, return component in actieve slot
+	 * Als wel component en wijziging: delete oude component, plaats component in ander slot, toggle slot
+	 */
+	var m *Mount
+
+	rt := r.State.Gadget.Traverser
+	MountedName := ""
+
+	// check if we have it mounted
+	if len(r.State.Mounts) > 0 {
+		fmt.Println("**** We have a mount!", len(r.State.Mounts))
+		m = r.State.Mounts[0]
+		MountedName = m.Name
+	}
+
+	fmt.Println("++++ Current mounted name level =", MountedName, rt.level)
+	// c is the component for the current route level
+	c := rt.cr.Get(rt.level)
+	rt.Up()
+	if c == nil {
+		if m != nil {
+			m.ToBeRemoved = true
+		}
+		return nil
+	}
+
+	if MountedName != c.Route.Component.Name {
+		fmt.Println("Route changed!", MountedName, c.Route.Component.Name)
+		if m != nil {
+			fmt.Println("There's a mount, so remove+toggle")
+			m.ToBeRemoved = true
+			r.firstSlot = !r.firstSlot
+		}
+	} else {
+		fmt.Println("Route unchanged, yay!", MountedName)
+	}
+
+	fmt.Println("RVC component", c.Route.Component)
+
+	slot := "x-component1"
+	if !r.firstSlot {
+		slot = "x-component2"
+	}
+	res := map[string]*ComponentFactory{slot: c.Route.Component}
+	fmt.Println("Returning Components():", res)
+	return res
+}
+
+var RouterViewComponentFactory = &ComponentFactory{
+	Name: "gadget.router.RouterView",
+	Builder: func() Component {
+		c := &RouterViewComponent{firstSlot: true}
+		c.SetupStorage(NewStructStorage(c))
+		return c
+	},
 }
