@@ -72,6 +72,7 @@ type CurrentRoute struct {
 }
 
 func (cr *CurrentRoute) Get(level int) *RouteMatch {
+	fmt.Printf("Get: want %d, have %d\n", level, len(cr.Matches))
 	if level >= len(cr.Matches) {
 		// default to "index" subroute?
 		return nil
@@ -338,6 +339,8 @@ var RouterLinkComponentFactory = &ComponentFactory{
 type RouterViewComponent struct {
 	BaseComponent
 	firstSlot bool
+	level     int
+	state     map[string]*ComponentFactory
 }
 
 func (r *RouterViewComponent) Template() string {
@@ -352,25 +355,46 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 	 * Als nog geen component: return component in slot 1
 	 * Als wel component maar geen wijziging, return component in actieve slot
 	 * Als wel component en wijziging: delete oude component, plaats component in ander slot, toggle slot
-	 */
+
+	 Wat is hier gaande? We hebben 2 fake componenten,
+	 dus "ComponentHandler" wordt 2x aangeroepen binnen dit routerview
+	 component. De eerste keer
+	*/
 	var m *Mount
 
 	rt := r.State.Gadget.Traverser
+	// Have we already been visited?
+	fmt.Printf("RV Components: %d vs %d\n", r.level, rt.level)
+	if r.level == -1 {
+		// New component.
+		r.level = rt.level
+	} else if r.level != rt.level {
+		// been here before, return state
+		fmt.Println("Been at this level before, return state", r.state)
+		return r.state
+	}
+
+	r.state = map[string]*ComponentFactory{"x-component1": nil, "x-component2": nil}
 	MountedName := ""
 
 	// check if we have it mounted
+	if len(r.State.Mounts) > 1 {
+		panic("router-view can have at most 1 mount")
+	}
 	if len(r.State.Mounts) > 0 {
 		fmt.Println("**** We have a mount!", len(r.State.Mounts))
 		m = r.State.Mounts[0]
 		MountedName = m.Name
 	}
 
-	fmt.Println("++++ Current mounted name level =", MountedName, rt.level)
+	fmt.Println("++++ Current mounted name level =", MountedName, r.level)
 	// c is the component for the current route level
-	c := rt.cr.Get(rt.level)
+	c := rt.cr.Get(r.level)
 	rt.Up()
+
 	if c == nil {
 		if m != nil {
+			fmt.Printf("@@@@@@ No component at level %d, but have mount %v\n", rt.level-1, m)
 			m.ToBeRemoved = true
 		}
 		return nil
@@ -393,15 +417,15 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 	if !r.firstSlot {
 		slot = "x-component2"
 	}
-	res := map[string]*ComponentFactory{slot: c.Route.Component}
-	fmt.Println("Returning Components():", res)
-	return res
+	r.state[slot] = c.Route.Component
+	fmt.Println("Returning Components():", r.state)
+	return r.state
 }
 
 var RouterViewComponentFactory = &ComponentFactory{
 	Name: "gadget.router.RouterView",
 	Builder: func() Component {
-		c := &RouterViewComponent{firstSlot: true}
+		c := &RouterViewComponent{firstSlot: true, level: -1}
 		c.SetupStorage(NewStructStorage(c))
 		return c
 	},

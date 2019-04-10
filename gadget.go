@@ -91,6 +91,8 @@ func (g *Gadget) SingleLoop() {
 	changes := g.App.BuildDiff(nil, g.Traverser)
 
 	changes.ApplyChanges(g.Bridge)
+	fmt.Println("===== Mounts after loop ======\n")
+	DumpMounts(g.App, 0)
 }
 
 func (g *Gadget) MainLoop() {

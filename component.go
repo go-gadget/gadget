@@ -286,6 +286,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 	var FilteredMounts []*Mount
 	for _, m := range ci.State.Mounts {
 		if m.ToBeRemoved {
+			fmt.Println("+!+!+!+!+! removing mount", m)
 			continue
 			// call some hook?
 		}
