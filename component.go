@@ -7,28 +7,6 @@ import (
 	"github.com/go-gadget/gadget/vtree"
 )
 
-/*
- * Gadget only cares about the component interface:
- * - it must render into something (may not even care about
- *   the template?)
- *  - let runtime be in control of rendering (extra values, nested components)
- * - I must be able to get values and set values
- *   - values from the js side should be set (e.g. input fields),
- *   - values for rendering should be gotten
- * - I want to be able to call handlers on it
- *
- * When parsing a template I will get
- * - bound values (can be 2-way): g-bind or {{val}}
- * - event handlers (basically id's)
- *
- * Since we can't observe property changes, we need a different mechanism
- * for handling changes. An option could be a channel, that will put it on a
- * queue that will be unique-d
- *
- * A component defines props it takes. These props can then be passed when using
- * the component. E.g. title="Hello World".
- * To (generically) dynamically bind a prop, use g-bind:title="var"
- */
 type Handler func(chan Action)
 
 type Component interface {
@@ -37,8 +15,11 @@ type Component interface {
 	Template() string
 	Data() Storage
 	Handlers() map[string]Handler // Actions ?
-	Components() map[string]Builder
+	Components() map[string]ComponentFactory
 }
+
+// A ComponentFactory is anything that creates s Component
+type ComponentFactory func() Component
 
 type BaseComponent struct {
 	Storage Storage
@@ -70,7 +51,7 @@ func (b *BaseComponent) Handlers() map[string]Handler {
 	return nil
 }
 
-func (b *BaseComponent) Components() map[string]Builder {
+func (b *BaseComponent) Components() map[string]ComponentFactory {
 	return nil
 }
 
@@ -211,7 +192,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 
 	// Invoked when something component-like is encountered. Includes <router-view>
 	ComponentHandler := func(componentElement *vtree.Element) {
-		var builder Builder
+		var builder ComponentFactory
 
 		// First check if the component is already mounted. If so, it can be a router-view
 		// that changes component, an existing component with different props
@@ -256,7 +237,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		}
 
 		if builder != nil {
-			// builder is a ComponentBuilder, resulting in a Component, not a ComponentInstance
+			// builder is a ComponentComponentFactory, resulting in a Component, not a ComponentInstance
 			wc := ci.State.Gadget.NewComponent(builder)
 			m := ci.Mount(wc, componentElement)
 
@@ -322,7 +303,7 @@ func (ci *ComponentInstance) HandleEvent(event string) {
 type GeneratedComponent struct {
 	BaseComponent
 	gTemplate   string
-	gComponents map[string]Builder
+	gComponents map[string]ComponentFactory
 	gProps      []string
 }
 
@@ -337,13 +318,13 @@ func (g *GeneratedComponent) Template() string {
 }
 
 // Components returns the BC's Components, if any
-func (g *GeneratedComponent) Components() map[string]Builder {
+func (g *GeneratedComponent) Components() map[string]ComponentFactory {
 	return g.gComponents
 }
 
-// GenerateComponent generates a Component (Builder) based on the supplied arguments
-func GenerateComponent(Template string, Components map[string]Builder,
-	Props []string) Builder {
+// GenerateComponent generates a Component (ComponentFactory) based on the supplied arguments
+func GenerateComponent(Template string, Components map[string]ComponentFactory,
+	Props []string) ComponentFactory {
 	return func() Component {
 		s := &GeneratedComponent{gTemplate: Template, gComponents: Components,
 			gProps: Props}

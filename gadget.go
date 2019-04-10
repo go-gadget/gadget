@@ -36,9 +36,6 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 	return g
 }
 
-// A Builder is anything that creates s Component
-type Builder func() Component
-
 func (g *Gadget) Router(routes Router) {
 	g.RouterState.Router = routes
 	// So either we make this global, or we structurally pass Gadget around
@@ -63,9 +60,7 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
-// NewComponent creates a new ComponentInstance through the supplied Builder,
-// calling relevant hooks and doing necessary initialization
-func (g *Gadget) NewComponent(b Builder) *ComponentInstance {
+func (g *Gadget) NewComponent(b ComponentFactory) *ComponentInstance {
 	state := &ComponentState{Update: g.Chan, Gadget: g}
 	comp := &ComponentInstance{Comp: b(), State: state}
 

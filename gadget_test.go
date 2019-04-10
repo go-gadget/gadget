@@ -15,7 +15,7 @@ type DummyComponent struct {
 	StringVal   string
 }
 
-func MakeDummyFactory(Template string, Components map[string]Builder, Props []string) Builder {
+func MakeDummyFactory(Template string, Components map[string]ComponentFactory, Props []string) ComponentFactory {
 	return func() Component {
 		s := &DummyComponent{
 			GeneratedComponent: GeneratedComponent{gTemplate: Template,
@@ -100,14 +100,14 @@ func TestNestedComponents(t *testing.T) {
 	SetupTestGadget := func() (*Gadget, *TestBridge) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
-		ChildBuilder := MakeDummyFactory(
+		ChildComponentFactory := MakeDummyFactory(
 			"<b>I am the child</b>",
 			nil,
 			nil,
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			"<div><test-child></test-child></div>",
-			map[string]Builder{"test-child": ChildBuilder},
+			map[string]ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -185,7 +185,7 @@ func TestMultiNestedComponents(t *testing.T) {
 	SetupTestGadget := func() (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
-		ChildBuilder := MakeDummyFactory(
+		ChildComponentFactory := MakeDummyFactory(
 			"<b>I am the child</b>",
 			nil,
 			nil,
@@ -193,7 +193,7 @@ func TestMultiNestedComponents(t *testing.T) {
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-if="BoolVal"></test-child>`+
 				`<test-child></test-child></div>`,
-			map[string]Builder{"test-child": ChildBuilder},
+			map[string]ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -239,14 +239,14 @@ func TestConditionalComponent(t *testing.T) {
 	SetupTestGadget := func() (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
-		ChildBuilder := MakeDummyFactory(
+		ChildComponentFactory := MakeDummyFactory(
 			"<b>I am the child</b>",
 			nil,
 			nil,
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-if="BoolVal"></test-child></div>`,
-			map[string]Builder{"test-child": ChildBuilder},
+			map[string]ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -360,14 +360,14 @@ func TestForComponent(t *testing.T) {
 	SetupTestGadget := func() (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
-		ChildBuilder := MakeDummyFactory(
+		ChildComponentFactory := MakeDummyFactory(
 			"<b>I am the child</b>",
 			nil,
 			nil,
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-for="IntArrayVal"></test-child></div>`,
-			map[string]Builder{"test-child": ChildBuilder},
+			map[string]ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -402,14 +402,14 @@ func TestComponentArgs(t *testing.T) {
 	SetupTestGadget := func(Props []string) (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
-		ChildBuilder := MakeDummyFactory(
+		ChildComponentFactory := MakeDummyFactory(
 			`<b g-value="StringVal">I am the child</b>`,
 			nil,
 			Props,
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child StringVal="Hello World"></test-child></div>`,
-			map[string]Builder{"test-child": ChildBuilder}, nil,
+			map[string]ComponentFactory{"test-child": ChildComponentFactory}, nil,
 		))
 		g.Mount(component)
 		return g, tb, component
@@ -431,7 +431,7 @@ func TestComponentArgs(t *testing.T) {
 
 	t.Run("Test bound attribute", func(t *testing.T) {
 		g := NewGadget(NewTestBridge())
-		ChildBuilder := MakeDummyFactory(
+		ChildComponentFactory := MakeDummyFactory(
 			`<b g-value="StringVal">I am the child</b>`,
 			nil,
 			[]string{"StringVal"},
@@ -441,7 +441,7 @@ func TestComponentArgs(t *testing.T) {
 		// (or use g-bind:attr)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-bind:StringVal="StringVal"></test-child></div>`,
-			map[string]Builder{"test-child": ChildBuilder}, nil,
+			map[string]ComponentFactory{"test-child": ChildComponentFactory}, nil,
 		))
 
 		component.RawSetValue("StringVal", "Hello World")
@@ -463,14 +463,14 @@ func TestForBindComponent(t *testing.T) {
 	SetupTestGadget := func() (*Gadget, *TestBridge, *ComponentInstance) {
 		tb := NewTestBridge()
 		g := NewGadget(tb)
-		ChildBuilder := MakeDummyFactory(
+		ChildComponentFactory := MakeDummyFactory(
 			`<b g-value="StringVal"></b>`,
 			nil,
 			[]string{"StringVal"},
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><p g-for="IntArrayVal"><test-child ::StringVal="_"></test-child></p></div>`,
-			map[string]Builder{"test-child": ChildBuilder},
+			map[string]ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)

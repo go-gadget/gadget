@@ -53,7 +53,7 @@ TODO:
 type Route struct {
 	Path      string
 	Name      string
-	Component Builder
+	Component ComponentFactory
 	Children  Router
 }
 
@@ -285,13 +285,13 @@ func (rt *RouteTraverser) PathID() string {
 	return rt.cr.PathID(rt.level)
 }
 
-func (rt *RouteTraverser) Component(ElementType string) Builder {
+func (rt *RouteTraverser) Component(ElementType string) ComponentFactory {
 	if ElementType == "router-view" {
 		if rm := rt.cr.Get(rt.level); rm != nil {
 			return rm.Route.Component
 		}
 	} else if ElementType == "router-link" {
-		return RouterLinkBuilder
+		return RouterLinkComponentFactory
 	}
 	return nil
 }
@@ -324,7 +324,7 @@ func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	}
 }
 
-func RouterLinkBuilder() Component {
+func RouterLinkComponentFactory() Component {
 	c := &RouterLinkComponent{}
 	c.SetupStorage(NewStructStorage(c))
 	return c
