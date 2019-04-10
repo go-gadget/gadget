@@ -72,7 +72,6 @@ type CurrentRoute struct {
 }
 
 func (cr *CurrentRoute) Get(level int) *RouteMatch {
-	fmt.Printf("Get: want %d, have %d\n", level, len(cr.Matches))
 	if level >= len(cr.Matches) {
 		// default to "index" subroute?
 		return nil
@@ -300,6 +299,7 @@ func (rt *RouteTraverser) Component(ElementType string) *ComponentFactory {
 }
 
 func (rt *RouteTraverser) Up() {
+	fmt.Printf("Upping from %d\n", rt.level)
 	rt.level++
 }
 
@@ -391,6 +391,7 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 	// c is the component for the current route level
 	c := rt.cr.Get(r.level)
 	rt.Up()
+	fmt.Printf("Upped to %d\n", rt.level)
 
 	if c == nil {
 		if m != nil {

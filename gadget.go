@@ -88,6 +88,8 @@ func (g *Gadget) SingleLoop() {
 	}
 
 	g.Traverser = NewRouteTraverser(g.RouterState.CurrentRoute)
+
+	fmt.Printf("New traverser created, level %d\n", g.Traverser.level)
 	changes := g.App.BuildDiff(nil, g.Traverser)
 
 	changes.ApplyChanges(g.Bridge)
