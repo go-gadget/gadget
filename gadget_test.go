@@ -540,7 +540,7 @@ func TestRoutes(t *testing.T) {
 		g.Router(router)
 
 		go func() {
-			<-g.Chan
+			<-g.Update
 		}()
 		g.RouterState.TransitionToPath("/level1/123/level2a")
 		g.SingleLoop()
@@ -566,8 +566,8 @@ func TestRoutes(t *testing.T) {
 		g.Router(router)
 
 		go func() {
-			<-g.Chan
-			<-g.Chan
+			<-g.Update
+			<-g.Update
 		}()
 		g.RouterState.TransitionToPath("/level1/123/level2a")
 		g.SingleLoop()
@@ -593,7 +593,7 @@ func TestRoutes(t *testing.T) {
 		g.Router(router)
 
 		go func() {
-			<-g.Chan
+			<-g.Update
 		}()
 		g.RouterState.TransitionToPath("/level1/123/level2a")
 		g.SingleLoop()
@@ -621,7 +621,7 @@ func TestRoutes(t *testing.T) {
 		g.Router(router)
 
 		go func() {
-			<-g.Chan
+			<-g.Update
 		}()
 		g.RouterState.TransitionToPath("/level1/")
 		g.SingleLoop()
@@ -639,7 +639,7 @@ func TestRoutes(t *testing.T) {
 		g.Router(router)
 
 		go func() {
-			<-g.Chan
+			<-g.Update
 		}()
 		g.RouterState.TransitionToPath("/x")
 		g.SingleLoop()
@@ -657,7 +657,7 @@ func TestRoutes(t *testing.T) {
 		g.Router(router)
 
 		go func() {
-			<-g.Chan
+			<-g.Update
 		}()
 		g.RouterState.TransitionToPath("/level1/123/")
 		g.SingleLoop()
@@ -676,8 +676,8 @@ func TestRoutes(t *testing.T) {
 		g.Router(router)
 
 		go func() {
-			<-g.Chan
-			<-g.Chan
+			<-g.Update
+			<-g.Update
 		}()
 		g.RouterState.TransitionToPath("/level1/123/level2a")
 		g.SingleLoop()

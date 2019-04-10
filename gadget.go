@@ -14,7 +14,7 @@ type Action interface {
 }
 
 type Gadget struct {
-	Chan        chan Action
+	Update      chan Action
 	Bridge      vtree.Subject
 	Queue       []Action
 	Wakeup      chan bool
@@ -24,7 +24,7 @@ type Gadget struct {
 
 func NewGadget(bridge vtree.Subject) *Gadget {
 	g := &Gadget{
-		Chan:        make(chan Action),
+		Update:      make(chan Action),
 		Bridge:      bridge,
 		Wakeup:      make(chan bool),
 		RouterState: NewRouterState(),
@@ -32,7 +32,7 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 	g.App = g.NewComponent(GenerateComponent("<div>App<router-view></router-view></div>", nil, nil))
 	GetRegistry().Register("gadget", g)
 	GetRegistry().Register("bridge", bridge)
-	g.RouterState.Update = g.Chan
+	g.RouterState.Update = g.Update
 	return g
 }
 
@@ -61,7 +61,7 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 }
 
 func (g *Gadget) NewComponent(b ComponentFactory) *ComponentInstance {
-	state := &ComponentState{Update: g.Chan, Gadget: g}
+	state := &ComponentState{Update: g.Update, Gadget: g}
 	comp := &ComponentInstance{Comp: b(), State: state}
 
 	comp.Init()
@@ -107,7 +107,7 @@ func (g *Gadget) MainLoop() {
 	go func() {
 		for {
 			fmt.Println("Ready to read tasks")
-			msg := <-g.Chan
+			msg := <-g.Update
 
 			size := len(g.Queue)
 			// lock?
