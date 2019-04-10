@@ -48,8 +48,6 @@ func (g *Gadget) Router(routes Router) {
 
 func (g *Gadget) Mount(c *ComponentInstance) {
 	g.App = c
-	// yuck
-	c.State.Update = g.Chan
 }
 
 func (g *Gadget) SyncState(Tree vtree.Node) {
@@ -68,7 +66,7 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 // NewComponent creates a new ComponentInstance through the supplied Builder,
 // calling relevant hooks and doing necessary initialization
 func (g *Gadget) NewComponent(b Builder) *ComponentInstance {
-	state := &ComponentState{Update: nil, Gadget: g}
+	state := &ComponentState{Update: g.Chan, Gadget: g}
 	comp := &ComponentInstance{Comp: b(), State: state}
 
 	comp.Init()

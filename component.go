@@ -185,7 +185,6 @@ func (g *ComponentInstance) Mount(c *ComponentInstance, point *vtree.Element) *M
 	// store node where mounted (or nil)
 	mount := &Mount{Component: c, Point: point, ToBeRemoved: false}
 	g.State.Mounts = append(g.State.Mounts, mount)
-	c.State.Update = g.State.Update
 	// c.Mounted() hook?
 	return mount
 }
