@@ -191,8 +191,6 @@ func (ci *ComponentInstance) ExtractProps(componentElement *vtree.Element) []*vt
 }
 
 func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTraverser) (res vtree.ChangeSet) {
-	fmt.Printf("BuildDiff on %v %v\n", ci, ci.Comp)
-
 	// collect changesets
 	var cs []vtree.ChangeSet
 
@@ -201,6 +199,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		var builder *ComponentFactory
 
 		// We don't need the components here yet, but right now it serves as a sort of a hook
+		// XXX Move this to a hook call
 		fmt.Printf("Getting comps for %v\n", ci.Comp.Components())
 		childcomps := ci.Comp.Components()
 
@@ -208,23 +207,6 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		// that changes component, an existing component with different props
 		for _, m := range ci.State.Mounts {
 			if m.HasComponent(componentElement) {
-				// This will be true for a router-view, even if the inner component changes.
-				// if componentElement.Type == "router-view" {
-				// 	// PathID identifies the route. If it changes, we need to update the component and/or remove the old
-				// 	if crPathID := rt.PathID(); m.PathID != crPathID {
-				// 		cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.State.ExecutedTree}})
-				// 		if builder = rt.component(componentelement.type); builder != nil {
-				// 			nc := ci.State.Gadget.NewComponent(builder)
-				// 			m.Component = nc
-				// 			m.PathID = crPathID
-				// 		} else {
-				// 			m.ToBeRemoved = true
-				// 			return
-				// 		}
-				// 	}
-				// 	rt.Up()
-				// }
-				j.J("CH I have this component, diffinf")
 				Props := m.Component.ExtractProps(componentElement)
 				changes := m.Component.BuildDiff(Props, rt)
 				cs = append(cs, changes)
@@ -237,12 +219,6 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		if builder = childcomps[componentElement.Type]; builder == nil {
 			builder = rt.Component(componentElement.Type)
 			fmt.Println("Trying rt component", builder)
-			// XXX hacky, ugly
-			// We need magic here to load the "index" route, if any.
-			// if builder != nil && componentElement.Type == "router-view" {
-			// 	rt.Up()
-			// 	PathID = rt.PathID()
-			// }
 		}
 
 		if builder != nil {
@@ -273,11 +249,9 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 	var changes vtree.ChangeSet
 
 	if ci.State.ExecutedTree == nil {
-		j.J("A")
 		changes = vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
 	} else {
 		changes = vtree.Diff(ci.State.ExecutedTree, tree)
-		j.J("B", len(changes), changes)
 		for _, ch := range changes {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
@@ -294,7 +268,6 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 	var FilteredMounts []*Mount
 	for _, m := range ci.State.Mounts {
 		if m.ToBeRemoved {
-			fmt.Println("+!+!+!+!+! removing mount", m)
 			cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.State.ExecutedTree}})
 			continue
 			// call some hook?

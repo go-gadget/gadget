@@ -15,14 +15,20 @@ type DummyComponent struct {
 	StringVal   string
 }
 
-func MakeDummyFactory(Template string, Components map[string]ComponentFactory, Props []string) ComponentFactory {
-	return func() Component {
-		s := &DummyComponent{
-			GeneratedComponent: GeneratedComponent{gTemplate: Template,
-				gComponents: Components, gProps: Props}}
-		s.SetupStorage(NewStructStorage(s))
-		return s
-	}
+func MakeDummyFactory(Template string, Components map[string]*ComponentFactory, Props []string) *ComponentFactory {
+	return MakeNamedDummyFactory("DummyComponent", Template, Components, Props)
+}
+
+func MakeNamedDummyFactory(Name string, Template string, Components map[string]*ComponentFactory, Props []string) *ComponentFactory {
+	return &ComponentFactory{
+		Name: Name,
+		Builder: func() Component {
+			s := &DummyComponent{
+				GeneratedComponent: GeneratedComponent{gTemplate: Template,
+					gComponents: Components, gProps: Props}}
+			s.SetupStorage(NewStructStorage(s))
+			return s
+		}}
 }
 
 type TestBridge struct {
@@ -107,7 +113,7 @@ func TestNestedComponents(t *testing.T) {
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			"<div><test-child></test-child></div>",
-			map[string]ComponentFactory{"test-child": ChildComponentFactory},
+			map[string]*ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -193,7 +199,7 @@ func TestMultiNestedComponents(t *testing.T) {
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-if="BoolVal"></test-child>`+
 				`<test-child></test-child></div>`,
-			map[string]ComponentFactory{"test-child": ChildComponentFactory},
+			map[string]*ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -246,7 +252,7 @@ func TestConditionalComponent(t *testing.T) {
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-if="BoolVal"></test-child></div>`,
-			map[string]ComponentFactory{"test-child": ChildComponentFactory},
+			map[string]*ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -367,7 +373,7 @@ func TestForComponent(t *testing.T) {
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-for="IntArrayVal"></test-child></div>`,
-			map[string]ComponentFactory{"test-child": ChildComponentFactory},
+			map[string]*ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -409,7 +415,7 @@ func TestComponentArgs(t *testing.T) {
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child StringVal="Hello World"></test-child></div>`,
-			map[string]ComponentFactory{"test-child": ChildComponentFactory}, nil,
+			map[string]*ComponentFactory{"test-child": ChildComponentFactory}, nil,
 		))
 		g.Mount(component)
 		return g, tb, component
@@ -441,7 +447,7 @@ func TestComponentArgs(t *testing.T) {
 		// (or use g-bind:attr)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><test-child g-bind:StringVal="StringVal"></test-child></div>`,
-			map[string]ComponentFactory{"test-child": ChildComponentFactory}, nil,
+			map[string]*ComponentFactory{"test-child": ChildComponentFactory}, nil,
 		))
 
 		component.RawSetValue("StringVal", "Hello World")
@@ -470,7 +476,7 @@ func TestForBindComponent(t *testing.T) {
 		)
 		component := g.NewComponent(MakeDummyFactory(
 			`<div><p g-for="IntArrayVal"><test-child ::StringVal="_"></test-child></p></div>`,
-			map[string]ComponentFactory{"test-child": ChildComponentFactory},
+			map[string]*ComponentFactory{"test-child": ChildComponentFactory},
 			nil,
 		))
 		g.Mount(component)
@@ -510,10 +516,36 @@ func TestForBindComponent(t *testing.T) {
 
 // nested loop using, e.g., [][]string
 
+func AssertTemplateAtLevel(t *testing.T, g *Gadget, level int, expected string) {
+	t.Helper()
+
+	c := g.App
+	for i := 0; i < level; i++ {
+		c = c.State.Mounts[0].Component
+	}
+
+	if r := c.State.ExecutedTree.ToString(); r != expected {
+		t.Errorf("Didn't get expected template at level %d, got %s", level, r)
+	}
+}
+
+func AssertMountsAtLevel(t *testing.T, g *Gadget, level int, expected int) {
+	t.Helper()
+
+	c := g.App
+	for i := 0; i < level; i++ {
+		c = c.State.Mounts[0].Component
+	}
+
+	if r := len(c.State.Mounts); r != expected {
+		t.Errorf("Didn't get expected mount-count at level %d, got %d", level, r)
+	}
+}
+
 func TestRoutes(t *testing.T) {
-	Level1Component := MakeDummyFactory(`<div>1<router-view></router-view></div>`, nil, nil)
-	Level2aComponent := MakeDummyFactory("<div>2a</div>", nil, nil)
-	Level2bComponent := MakeDummyFactory("<div>2b</div>", nil, nil)
+	Level1Component := MakeNamedDummyFactory("Main", `<div>1<router-view></router-view></div>`, nil, nil)
+	Level2aComponent := MakeNamedDummyFactory("2a", "<div>2a</div>", nil, nil)
+	Level2bComponent := MakeNamedDummyFactory("2b", "<div>2b</div>", nil, nil)
 
 	router := Router{
 		Route{
@@ -545,22 +577,13 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/123/level2a")
 		g.SingleLoop()
 
-		if l := len(g.App.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-			return
-		}
-		if l := len(g.App.State.Mounts[0].Component.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
-			return
-		}
-		if r := g.App.State.Mounts[0].Component.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>2a</div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-		}
+		AssertMountsAtLevel(t, g, 0, 1)
+		AssertTemplateAtLevel(t, g, 2, "<div>1<router-view></router-view></div>")
 
+		AssertMountsAtLevel(t, g, 2, 1)
+		AssertTemplateAtLevel(t, g, 4, "<div>2a</div>")
 	})
+
 	t.Run("Transition a->b", func(t *testing.T) {
 		g := NewGadget(NewTestBridge())
 		g.Router(router)
@@ -574,18 +597,10 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/123/level2b")
 		g.SingleLoop()
 
-		if l := len(g.App.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-		}
-		if l := len(g.App.State.Mounts[0].Component.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>2b</div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-		}
+		AssertMountsAtLevel(t, g, 0, 1)
+		AssertTemplateAtLevel(t, g, 2, "<div>1<router-view></router-view></div>")
+		AssertMountsAtLevel(t, g, 2, 1)
+		AssertTemplateAtLevel(t, g, 4, "<div>2b</div>")
 		// Possibly check for DeleteChange on old component?
 	})
 	t.Run("Multi loop", func(t *testing.T) {
@@ -601,18 +616,10 @@ func TestRoutes(t *testing.T) {
 		g.SingleLoop()
 		g.SingleLoop()
 
-		if l := len(g.App.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-		}
-		if l := len(g.App.State.Mounts[0].Component.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>2a</div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-		}
+		AssertMountsAtLevel(t, g, 0, 1)
+		AssertTemplateAtLevel(t, g, 2, "<div>1<router-view></router-view></div>")
+		AssertMountsAtLevel(t, g, 2, 1)
+		AssertTemplateAtLevel(t, g, 4, "<div>2a</div>")
 	})
 
 	t.Run("Short path", func(t *testing.T) {
@@ -626,12 +633,8 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/")
 		g.SingleLoop()
 
-		if l := len(g.App.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>404 - not found</div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-		}
+		AssertMountsAtLevel(t, g, 0, 1)
+		AssertTemplateAtLevel(t, g, 2, "<div>404 - not found</div>")
 	})
 
 	t.Run("Test 404 fallback", func(t *testing.T) {
@@ -644,12 +647,8 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/x")
 		g.SingleLoop()
 
-		if l := len(g.App.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>404 - not found</div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-		}
+		AssertMountsAtLevel(t, g, 0, 1)
+		AssertTemplateAtLevel(t, g, 2, "<div>404 - not found</div>")
 	})
 
 	t.Run("Not all routes resolved", func(t *testing.T) {
@@ -662,13 +661,8 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/123/")
 		g.SingleLoop()
 
-		if l := len(g.App.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-			return
-		}
+		AssertMountsAtLevel(t, g, 0, 1)
+		AssertTemplateAtLevel(t, g, 2, "<div>1<router-view></router-view></div>")
 	})
 
 	t.Run("Transition up", func(t *testing.T) {
@@ -684,16 +678,11 @@ func TestRoutes(t *testing.T) {
 		g.RouterState.TransitionToPath("/level1/123/")
 		g.SingleLoop()
 
-		if l := len(g.App.State.Mounts); l != 1 {
-			t.Errorf("Didn't get expected amount of level1 mounts: %d", l)
-		}
-		if r := g.App.State.Mounts[0].Component.State.ExecutedTree.ToString(); r != "<div>1<router-view></router-view></div>" {
-			t.Errorf("Didn't get expected level1 template, got %s", r)
-		}
-		// The component disappeared
-		if l := len(g.App.State.Mounts[0].Component.State.Mounts); l != 0 {
-			t.Errorf("Didn't get expected amount of level2 mounts: %d", l)
-		}
+		AssertMountsAtLevel(t, g, 0, 1)
+		AssertTemplateAtLevel(t, g, 2, "<div>1<router-view></router-view></div>")
+		// At level 2 we still have the <x-component> mount, but itself has no mounts.
+		AssertMountsAtLevel(t, g, 2, 1)
+		AssertMountsAtLevel(t, g, 3, 0)
 	})
 	// Stuff to test:
 	// Route doesn't change, param changes -> verify component updates (e.g. id)

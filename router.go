@@ -289,9 +289,6 @@ func (rt *RouteTraverser) PathID() string {
 func (rt *RouteTraverser) Component(ElementType string) *ComponentFactory {
 	if ElementType == "router-view" {
 		return RouterViewComponentFactory
-		// if rm := rt.cr.Get(rt.level); rm != nil {
-		// 	return rm.Route.Component
-		// }
 	} else if ElementType == "router-link" {
 		return RouterLinkComponentFactory
 	}
@@ -347,20 +344,7 @@ type RouterViewComponent struct {
 }
 
 func (r *RouterViewComponent) Template() string {
-	fmt.Println("TEMPLATE CALL !!!!!!!")
-	return `
-<div>
-<div g-if="firstSlot">
-  -- 1 --
-  <x-component1>_1_</x-component1>
-</div>	
-<div g-if="secondSlot">
-  -- 2 --
-  <x-component2>_2_</x-component2>
-</div>	
-</div>`
-	// return `<div>[1]<b g-value="firstSlot"></b><x-component1 g-if="firstSlot">_1_<x-component1>[/1]<br>
-	//               [2]<b g-value="secondSlot"></b><x-component2 g-if="secondSlot">_2_</x-component2>[/2]</div>`
+	return `<div><x-component1 g-if="firstSlot"></x-component1><x-component2 g-if="secondSlot"></x-component2></div>`
 }
 
 func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
@@ -385,48 +369,34 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 
 	rt := r.State.Gadget.Traverser
 	// Have we already been visited?
-	fmt.Printf("RV Components: %d vs %d\n", r.level, rt.level)
 	if r.level == -1 {
 		// New component.
 		r.level = rt.level
 	} else if r.level != rt.level {
-		// been here before, return state
-		// panic("Raar?")
-		fmt.Println("Been at this level before, return state", r.state)
 		return r.state
 	}
 
 	r.state = map[string]*ComponentFactory{"x-component1": nil, "x-component2": nil}
 	MountedName := ""
 
-	// check if we have it mounted
-	if len(r.State.Mounts) > 1 {
-		panic("router-view can have at most 1 mount")
-	}
 	if len(r.State.Mounts) > 0 {
-		fmt.Println("**** We have a mount!", len(r.State.Mounts))
 		m = r.State.Mounts[0]
 		MountedName = m.Name
 	}
 
-	fmt.Println("++++ Current mounted name level =", MountedName, r.level)
 	// c is the component for the current route level
 	c := rt.cr.Get(r.level)
 	rt.Up()
-	fmt.Printf("Upped to %d\n", rt.level)
 
 	if c == nil {
 		if m != nil {
-			fmt.Printf("@@@@@@ No component at level %d, but have mount %v\n", rt.level-1, m)
 			m.ToBeRemoved = true
 		}
 		return r.state
 	}
 
 	if MountedName != c.Route.Component.Name {
-		fmt.Println("Route changed!", MountedName, c.Route.Component.Name)
 		if m != nil {
-			fmt.Println("There's a mount, so remove+toggle")
 			m.ToBeRemoved = true
 			r.firstSlot = !r.firstSlot
 			r.secondSlot = !r.firstSlot
@@ -434,8 +404,6 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 	} else {
 		fmt.Println("Route unchanged, yay!", MountedName)
 	}
-
-	fmt.Println("RVC component", c.Route.Component)
 
 	slot := "x-component1"
 	if !r.firstSlot {
