@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-gadget/gadget/j"
 	"github.com/go-gadget/gadget/vtree"
 )
 
@@ -254,7 +253,6 @@ func GetRouterState() *RouterState {
 }
 
 func (rs *RouterState) TransitionToPath(path string) {
-	j.J("Transition", path)
 	oldPath := rs.oldPath
 	rs.oldPath = path
 	bridge := GetRegistry().Get("bridge").(vtree.Subject)
@@ -299,9 +297,10 @@ func (rt *RouteTraverser) Component(ElementType string) *ComponentFactory {
 	return nil
 }
 
-func (rt *RouteTraverser) Up() {
-	fmt.Printf("Upping from %d\n", rt.level)
+func (rt *RouteTraverser) PopRoute() *RouteMatch {
+	r := rt.cr.Get(rt.level)
 	rt.level++
+	return r
 }
 
 type RouterLinkComponent struct {
@@ -372,8 +371,7 @@ func (r *RouterViewComponent) BeforeTraverse() {
 	}
 
 	// c is the component for the current route level
-	c := rt.cr.Get(r.level)
-	rt.Up()
+	c := rt.PopRoute()
 
 	if c == nil {
 		if m != nil {
@@ -388,8 +386,6 @@ func (r *RouterViewComponent) BeforeTraverse() {
 			r.firstSlot = !r.firstSlot
 			r.secondSlot = !r.firstSlot
 		}
-	} else {
-		fmt.Println("Route unchanged, yay!", MountedName)
 	}
 
 	slot := "x-component1"

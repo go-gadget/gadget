@@ -197,6 +197,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 	ComponentHandler := func(componentElement *vtree.Element) {
 		var builder *ComponentFactory
 
+		// Is this really about traversal? Or more about pre-call/render/?
 		if t, ok := ci.Comp.(Traversable); ok {
 			t.BeforeTraverse()
 		}
