@@ -1,7 +1,6 @@
 package gadget
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/go-gadget/gadget/j"
@@ -198,10 +197,9 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 	ComponentHandler := func(componentElement *vtree.Element) {
 		var builder *ComponentFactory
 
-		// We don't need the components here yet, but right now it serves as a sort of a hook
-		// XXX Move this to a hook call
-		fmt.Printf("Getting comps for %v\n", ci.Comp.Components())
-		childcomps := ci.Comp.Components()
+		if t, ok := ci.Comp.(Traversable); ok {
+			t.BeforeTraverse()
+		}
 
 		// First check if the component is already mounted. If so, it can be a router-view
 		// that changes component, an existing component with different props
@@ -215,10 +213,10 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		}
 
 		// At this point, it was not an already mounted component
+		childcomps := ci.Comp.Components()
 
 		if builder = childcomps[componentElement.Type]; builder == nil {
 			builder = rt.Component(componentElement.Type)
-			fmt.Println("Trying rt component", builder)
 		}
 
 		if builder != nil {
@@ -228,7 +226,6 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 
 			// m.PathID = PathID
 			m.Name = builder.Name
-			fmt.Printf("Mounting %v under name %v\n", cf, m.Name)
 
 			Props := m.Component.ExtractProps(componentElement)
 			changes := m.Component.BuildDiff(Props, rt)

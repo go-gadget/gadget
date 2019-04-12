@@ -58,6 +58,10 @@ type Route struct {
 	Children  Router
 }
 
+type Traversable interface {
+	BeforeTraverse()
+}
+
 type Router []Route
 
 type RouteMatch struct {
@@ -347,24 +351,7 @@ func (r *RouterViewComponent) Template() string {
 	return `<div><x-component1 g-if="firstSlot"></x-component1><x-component2 g-if="secondSlot"></x-component2></div>`
 }
 
-func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
-	fmt.Println("Returning Components():", r.state)
-	/*
-	 * Hoe verwijderen we componenten?
-	 * Verschillende componenten?
-	 *
-	 * Als nog geen component: return component in slot 1
-	 * Als wel component maar geen wijziging, return component in actieve slot
-	 * Als wel component en wijziging: delete oude component, plaats component in ander slot, toggle slot
-
-	 Wat is hier gaande? We hebben 2 fake componenten,
-	 dus "ComponentHandler" wordt 2x aangeroepen binnen dit routerview
-	 component. De eerste keer
-
-	 Omdat er gerecurst wordt, springt hij terug van level 2 naar component
-	 0
-	*/
-
+func (r *RouterViewComponent) BeforeTraverse() {
 	var m *Mount
 
 	rt := r.State.Gadget.Traverser
@@ -373,7 +360,7 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 		// New component.
 		r.level = rt.level
 	} else if r.level != rt.level {
-		return r.state
+		return
 	}
 
 	r.state = map[string]*ComponentFactory{"x-component1": nil, "x-component2": nil}
@@ -392,7 +379,7 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 		if m != nil {
 			m.ToBeRemoved = true
 		}
-		return r.state
+		return
 	}
 
 	if MountedName != c.Route.Component.Name {
@@ -410,6 +397,9 @@ func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 		slot = "x-component2"
 	}
 	r.state[slot] = c.Route.Component
+
+}
+func (r *RouterViewComponent) Components() map[string]*ComponentFactory {
 	return r.state
 }
 
