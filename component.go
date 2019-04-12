@@ -191,6 +191,7 @@ func (ci *ComponentInstance) ExtractProps(componentElement *vtree.Element) []*vt
 }
 
 func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTraverser) (res vtree.ChangeSet) {
+	fmt.Printf("BuildDiff on %v %v\n", ci, ci.Comp)
 
 	// collect changesets
 	var cs []vtree.ChangeSet
@@ -198,6 +199,10 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 	// Invoked when something component-like is encountered. Includes <router-view>
 	ComponentHandler := func(componentElement *vtree.Element) {
 		var builder *ComponentFactory
+
+		// We don't need the components here yet, but right now it serves as a sort of a hook
+		fmt.Printf("Getting comps for %v\n", ci.Comp.Components())
+		childcomps := ci.Comp.Components()
 
 		// First check if the component is already mounted. If so, it can be a router-view
 		// that changes component, an existing component with different props
@@ -219,6 +224,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 				// 	}
 				// 	rt.Up()
 				// }
+				j.J("CH I have this component, diffinf")
 				Props := m.Component.ExtractProps(componentElement)
 				changes := m.Component.BuildDiff(Props, rt)
 				cs = append(cs, changes)
@@ -227,8 +233,6 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		}
 
 		// At this point, it was not an already mounted component
-		fmt.Printf("Getting comps for %v\n", ci.Comp.Components())
-		childcomps := ci.Comp.Components()
 
 		if builder = childcomps[componentElement.Type]; builder == nil {
 			builder = rt.Component(componentElement.Type)
@@ -263,14 +267,17 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		}
 	}
 
+	// recurively calls BuildDiff through ComponentHandler
 	tree := ci.Execute(ComponentHandler, props)
 
 	var changes vtree.ChangeSet
 
 	if ci.State.ExecutedTree == nil {
+		j.J("A")
 		changes = vtree.ChangeSet{&vtree.AddChange{Parent: nil, Node: tree}}
 	} else {
 		changes = vtree.Diff(ci.State.ExecutedTree, tree)
+		j.J("B", len(changes), changes)
 		for _, ch := range changes {
 			if dch, ok := ch.(*vtree.DeleteChange); ok {
 				if el, ok := dch.Node.(*vtree.Element); ok && el.IsComponent() {
@@ -288,6 +295,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 	for _, m := range ci.State.Mounts {
 		if m.ToBeRemoved {
 			fmt.Println("+!+!+!+!+! removing mount", m)
+			cs = append(cs, vtree.ChangeSet{&vtree.DeleteChange{Node: m.Component.State.ExecutedTree}})
 			continue
 			// call some hook?
 		}

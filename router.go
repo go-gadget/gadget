@@ -322,6 +322,7 @@ func (r *RouterLinkComponent) Template() string {
 func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	return map[string]Handler{
 		"transition": func(Updates chan Action) {
+			fmt.Printf("RouterLink transition to name %s -> %s\n", r.Id, r.To)
 			GetRouterState().TransitionToName(r.To, map[string]string{"id": r.Id})
 		},
 	}
@@ -347,8 +348,19 @@ type RouterViewComponent struct {
 
 func (r *RouterViewComponent) Template() string {
 	fmt.Println("TEMPLATE CALL !!!!!!!")
-	return `<div>[1]<x-component1 g-if="firstSlot">_1_<x-component1>[/1]
-	              [2]<x-component2 g-if="secondSlot">_2_</x-component2>[/2]</div>`
+	return `
+<div>
+<div g-if="firstSlot">
+  -- 1 --
+  <x-component1>_1_</x-component1>
+</div>	
+<div g-if="secondSlot">
+  -- 2 --
+  <x-component2>_2_</x-component2>
+</div>	
+</div>`
+	// return `<div>[1]<b g-value="firstSlot"></b><x-component1 g-if="firstSlot">_1_<x-component1>[/1]<br>
+	//               [2]<b g-value="secondSlot"></b><x-component2 g-if="secondSlot">_2_</x-component2>[/2]</div>`
 }
 
 func (r *RouterViewComponent) Components() map[string]*ComponentFactory {

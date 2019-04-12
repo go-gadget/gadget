@@ -83,8 +83,9 @@ func (g *Gadget) SingleLoop() {
 		work := g.Queue[0]
 		g.Queue = g.Queue[1:]
 
-		fmt.Printf("Work found: %#v\n", work)
+		fmt.Printf("Work found: %#v, remain %d\n", work, len(g.Queue))
 		work.Run()
+		fmt.Printf("Done running\n")
 	}
 
 	g.Traverser = NewRouteTraverser(g.RouterState.CurrentRoute)
@@ -103,9 +104,9 @@ func (g *Gadget) MainLoop() {
 	go func() {
 		for {
 			// If nothing is feeding g.Wakeup, we get the "all goroutines are asleep"
-			g.Wakeup <- false
 			time.Sleep(100 * time.Second)
 			j.J("Just slept 100 sec")
+			g.Wakeup <- false
 		}
 	}()
 
@@ -133,7 +134,7 @@ func (g *Gadget) MainLoop() {
 	for {
 		j.J("Loop!")
 		g.SingleLoop()
-		<-g.Wakeup
 		j.J("Sleeping until there's some work")
+		<-g.Wakeup
 	}
 }
