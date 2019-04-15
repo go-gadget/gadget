@@ -309,8 +309,7 @@ func (r *RouterLinkComponent) Template() string {
 
 func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	return map[string]Handler{
-		"transition": func(Updates chan Action) {
-			fmt.Printf("RouterLink transition to name %s -> %s\n", r.Id, r.To)
+		"transition": func() {
 			GetRouterState(r.State.Registry).TransitionToName(r.To, map[string]string{"id": r.Id})
 		},
 	}

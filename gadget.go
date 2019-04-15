@@ -68,7 +68,7 @@ func GetGadget(registry *Registry) *Gadget {
 }
 
 func (g *Gadget) NewComponent(b *ComponentFactory) *ComponentInstance {
-	state := &ComponentState{Update: g.Update, Registry: g.Registry}
+	state := &ComponentState{Registry: g.Registry}
 	comp := &ComponentInstance{Comp: b.Builder(), State: state}
 
 	comp.Init()

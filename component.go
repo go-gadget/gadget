@@ -7,7 +7,7 @@ import (
 	"github.com/go-gadget/gadget/vtree"
 )
 
-type Handler func(chan Action)
+type Handler func()
 
 type Component interface {
 	Init(*ComponentState)
@@ -73,7 +73,6 @@ type ComponentState struct {
 	Registry       *Registry
 	UnexecutedTree *vtree.Element
 	ExecutedTree   *vtree.Element
-	Update         chan Action
 	Mounts         []*Mount
 }
 
@@ -105,7 +104,7 @@ func (ci *ComponentInstance) bindSpecials(node *vtree.Element) {
 				// But this should be reversed: A click on a control
 				// creates an action (task). When handled, look up
 				// any handlers for it.
-				ci.State.Update <- &UserAction{
+				GetGadget(ci.State.Registry).Update <- &UserAction{
 					component: ci,
 					node:      node,
 					handler:   vv,
@@ -283,7 +282,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 }
 
 func (ci *ComponentInstance) HandleEvent(event string) {
-	ci.Comp.Handlers()[event](ci.State.Update)
+	ci.Comp.Handlers()[event]()
 }
 
 // A GeneratedComponent is a component that's dynamically built, not declaratively
