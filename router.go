@@ -206,7 +206,10 @@ func (router Router) Parse(path string) *CurrentRoute {
 }
 
 func GetRouter(registry *Registry) *Router {
-	return registry.Get("router").(*Router)
+	if r := registry.Get("router"); r != nil {
+		return r.(*Router)
+	}
+	return nil
 }
 
 type TransitionAction struct {
