@@ -205,13 +205,7 @@ func (router Router) Parse(path string) *CurrentRoute {
 	return nil
 }
 
-func SetRouter(router *Router) {
-	registry := GetRegistry()
-	registry.Register("router", router)
-}
-
-func GetRouter() *Router {
-	registry := GetRegistry()
+func GetRouter(registry *Registry) *Router {
 	return registry.Get("router").(*Router)
 }
 
@@ -224,7 +218,7 @@ func (t *TransitionAction) Run() {
 }
 
 type RouterState struct {
-	Router       Router
+	Registry     *Registry
 	CurrentRoute *CurrentRoute
 	Route404     Route
 	oldPath      string
@@ -232,8 +226,8 @@ type RouterState struct {
 	Update       chan Action
 }
 
-func NewRouterState() *RouterState {
-	rs := &RouterState{}
+func NewRouterState(registry *Registry) *RouterState {
+	rs := &RouterState{Registry: registry}
 	rs.Route404 = Route{
 		Name:      "404",
 		Path:      "",
@@ -242,23 +236,17 @@ func NewRouterState() *RouterState {
 	return rs
 }
 
-func SetRouterState(state *RouterState) {
-	registry := GetRegistry()
-	registry.Register("router-state", state)
-}
-
-func GetRouterState() *RouterState {
-	registry := GetRegistry()
+func GetRouterState(registry *Registry) *RouterState {
 	return registry.Get("router-state").(*RouterState)
 }
 
 func (rs *RouterState) TransitionToPath(path string) {
 	oldPath := rs.oldPath
 	rs.oldPath = path
-	bridge := GetRegistry().Get("bridge").(vtree.Subject)
+	bridge := rs.Registry.Get("bridge").(vtree.Subject)
 	bridge.SetLocation(path)
 
-	rs.CurrentRoute = rs.Router.Parse(path)
+	rs.CurrentRoute = GetRouter(rs.Registry).Parse(path)
 	if rs.CurrentRoute == nil {
 		// We could inject the actual path into a copy of the 404 route?
 		rs.CurrentRoute = &CurrentRoute{Matches: []*RouteMatch{&RouteMatch{Route: rs.Route404}}}
@@ -267,7 +255,7 @@ func (rs *RouterState) TransitionToPath(path string) {
 }
 
 func (rs *RouterState) TransitionToName(name string, params map[string]string) {
-	newPath := rs.Router.BuildPath(name, params)
+	newPath := GetRouter(rs.Registry).BuildPath(name, params)
 	if newPath != rs.oldPath {
 		rs.oldPath = newPath
 
@@ -323,7 +311,7 @@ func (r *RouterLinkComponent) Handlers() map[string]Handler {
 	return map[string]Handler{
 		"transition": func(Updates chan Action) {
 			fmt.Printf("RouterLink transition to name %s -> %s\n", r.Id, r.To)
-			GetRouterState().TransitionToName(r.To, map[string]string{"id": r.Id})
+			GetRouterState(r.State.Registry).TransitionToName(r.To, map[string]string{"id": r.Id})
 		},
 	}
 }
@@ -353,7 +341,7 @@ func (r *RouterViewComponent) Template() string {
 func (r *RouterViewComponent) BeforeTraverse() {
 	var m *Mount
 
-	rt := r.State.Gadget.Traverser
+	rt := GetGadget(r.State.Registry).Traverser
 	// Have we already been visited?
 	if r.level == -1 {
 		// New component.

@@ -21,27 +21,29 @@ type Gadget struct {
 	App         *ComponentInstance
 	RouterState *RouterState
 	Traverser   *RouteTraverser
+	Registry    *Registry
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {
+	registry := NewRegistry()
 	g := &Gadget{
+		Registry:    registry,
 		Update:      make(chan Action),
 		Bridge:      bridge,
 		Wakeup:      make(chan bool),
-		RouterState: NewRouterState(),
+		RouterState: NewRouterState(registry),
 	}
 	g.App = g.NewComponent(GenerateComponentFactory("gadget.gadget.App", "<div>App<router-view></router-view></div>", nil, nil))
-	GetRegistry().Register("gadget", g)
-	GetRegistry().Register("bridge", bridge)
+	g.Registry.Register("gadget", g)
+	g.Registry.Register("bridge", bridge)
 	g.RouterState.Update = g.Update
 	return g
 }
 
 func (g *Gadget) Router(routes Router) {
-	g.RouterState.Router = routes
 	// So either we make this global, or we structurally pass Gadget around
-	SetRouter(&routes)
-	SetRouterState(g.RouterState)
+	g.Registry.Register("router", &routes)
+	g.Registry.Register("router-state", g.RouterState)
 }
 
 func (g *Gadget) Mount(c *ComponentInstance) {
@@ -61,8 +63,12 @@ func (g *Gadget) SyncState(Tree vtree.Node) {
 	}
 }
 
+func GetGadget(registry *Registry) *Gadget {
+	return registry.Get("gadget").(*Gadget)
+}
+
 func (g *Gadget) NewComponent(b *ComponentFactory) *ComponentInstance {
-	state := &ComponentState{Update: g.Update, Gadget: g}
+	state := &ComponentState{Update: g.Update, Registry: g.Registry}
 	comp := &ComponentInstance{Comp: b.Builder(), State: state}
 
 	comp.Init()
@@ -126,7 +132,7 @@ func (g *Gadget) MainLoop() {
 	}()
 
 	// Set initial route
-	if g.RouterState.Router != nil {
+	if GetRouter(g.Registry) != nil {
 		if url, err := url.Parse(g.Bridge.GetLocation()); err == nil {
 			g.RouterState.TransitionToPath(url.Path)
 		}

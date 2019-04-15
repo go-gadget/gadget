@@ -70,11 +70,11 @@ func (a *UserAction) Run() {
 }
 
 type ComponentState struct {
+	Registry       *Registry
 	UnexecutedTree *vtree.Element
 	ExecutedTree   *vtree.Element
 	Update         chan Action
 	Mounts         []*Mount
-	Gadget         *Gadget
 }
 
 type ComponentInstance struct {
@@ -181,7 +181,7 @@ func (ci *ComponentInstance) ExtractProps(componentElement *vtree.Element) []*vt
 	for _, propName := range ci.Comp.Props() {
 		if val, ok := componentElement.Attributes[propName]; ok {
 			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
-		} else if val, ok := ci.State.Gadget.RouterState.CurrentRoute.Params[propName]; ok {
+		} else if val, ok := GetRouterState(ci.State.Registry).CurrentRoute.Params[propName]; ok {
 			props = append(props, &vtree.Variable{Name: propName, Value: reflect.ValueOf(val)})
 		}
 	}
@@ -222,7 +222,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 
 		if builder != nil {
 			// builder is a ComponentComponentFactory, resulting in a Component, not a ComponentInstance
-			cf := ci.State.Gadget.NewComponent(builder)
+			cf := GetGadget(ci.State.Registry).NewComponent(builder)
 			m := ci.Mount(cf, componentElement)
 
 			// m.PathID = PathID
