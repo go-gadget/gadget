@@ -80,29 +80,6 @@ func TestRouter(t *testing.T) {
 		}
 	})
 
-	// Test path-id building
-	t.Run("Test full nested path id", func(t *testing.T) {
-		res := router.Parse("/user/123/profile")
-
-		if pID := res.PathID(0); pID != "User" {
-			t.Errorf("Didn't get expected PathID, got %s", pID)
-		}
-
-		if pID := res.PathID(1); pID != "User.UserProfile" {
-			t.Errorf("Didn't get expected PathID, got %s", pID)
-		}
-
-		if pID := res.PathID(-1); pID != "User.UserProfile" {
-			t.Errorf("Didn't get expected PathID, got %s", pID)
-		}
-	})
-	t.Run("Test PathID when only param changed", func(t *testing.T) {
-		a := router.Parse("/user/123/profile").PathID(-1)
-		b := router.Parse("/user/234/profile").PathID(-1)
-		if a != b {
-			t.Errorf("Expected PathID's to be identical, but got %s <-> %s", a, b)
-		}
-	})
 	t.Run("Test CurrentRoute full nested path id", func(t *testing.T) {
 		res := router.Parse("/user/123/profile")
 

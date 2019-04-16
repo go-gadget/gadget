@@ -224,7 +224,6 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 			cf := GetGadget(ci.State.Registry).NewComponent(builder)
 			m := ci.Mount(cf, componentElement)
 
-			// m.PathID = PathID
 			m.Name = builder.Name
 
 			Props := m.Component.ExtractProps(componentElement)

@@ -82,23 +82,6 @@ func (cr *CurrentRoute) Get(level int) *RouteMatch {
 	return cr.Matches[level]
 }
 
-func (cr *CurrentRoute) PathID(level int) string {
-	if level == -1 {
-		level = len(cr.Matches) - 1
-	}
-
-	if level >= len(cr.Matches) {
-		level = len(cr.Matches) - 1
-	}
-
-	parts := make([]string, level+1)
-	for i := 0; i <= level; i++ {
-		parts[i] = cr.Matches[i].Route.Name
-	}
-
-	return strings.Join(parts, ".")
-}
-
 func (route Route) Parse(parts []string) ([]*RouteMatch, []string) {
 	routePath := strings.Trim(route.Path, "/")
 	if len(parts) == 0 {
@@ -273,10 +256,6 @@ type RouteTraverser struct {
 
 func NewRouteTraverser(cr *CurrentRoute) *RouteTraverser {
 	return &RouteTraverser{0, cr}
-}
-
-func (rt *RouteTraverser) PathID() string {
-	return rt.cr.PathID(rt.level)
 }
 
 func (rt *RouteTraverser) Component(ElementType string) *ComponentFactory {
