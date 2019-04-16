@@ -49,6 +49,7 @@ TODO:
 - support index route (named "")
 */
 
+// A Route is a single sub-path in a tree of routes
 type Route struct {
 	Path string
 	Name string
@@ -61,19 +62,23 @@ type Traversable interface {
 	BeforeTraverse()
 }
 
+// A Router definition is a collection of (nested) Routes
 type Router []Route
 
+// A RouteMatch is the match of a path against a chain of nested routes, possibly containing dynamic paths (params)
 type RouteMatch struct {
 	Route    Route
 	SubPaths []string
 	Params   map[string]string
 }
 
+// CurrentRoute is a RouteMatch with all params collected (and de-duplicated)
 type CurrentRoute struct {
 	Matches []*RouteMatch
 	Params  map[string]string
 }
 
+// Get retrieves a route in a RouteMatch at a specific level
 func (cr *CurrentRoute) Get(level int) *RouteMatch {
 	if level >= len(cr.Matches) {
 		// default to "index" subroute?
@@ -82,6 +87,7 @@ func (cr *CurrentRoute) Get(level int) *RouteMatch {
 	return cr.Matches[level]
 }
 
+// Parse matches a split path into a sequence of (nested) Routes and dynamic routes
 func (route Route) Parse(parts []string) ([]*RouteMatch, []string) {
 	routePath := strings.Trim(route.Path, "/")
 	if len(parts) == 0 {
@@ -127,6 +133,7 @@ func (route Route) Parse(parts []string) ([]*RouteMatch, []string) {
 	return myMatch, remaining
 }
 
+// Find recursively searches the router for the given named route
 func (router Router) Find(name string) []Route {
 	for _, r := range router {
 		if r.Name == name {
@@ -144,6 +151,8 @@ func (router Router) Find(name string) []Route {
 	return nil
 
 }
+
+// BuildPath constructs a ("reverse") path out of a given route name and params
 func (router Router) BuildPath(name string, params map[string]string) string {
 	// How to deal with '/' when constructing paths? Always end in /?
 
@@ -169,6 +178,7 @@ func (router Router) BuildPath(name string, params map[string]string) string {
 	return path
 }
 
+// Parse parses a path into a RouteMatch
 func (router Router) Parse(path string) *CurrentRoute {
 	path = strings.Trim(path, "/")
 	parts := strings.Split(path, "/")
@@ -188,6 +198,7 @@ func (router Router) Parse(path string) *CurrentRoute {
 	return nil
 }
 
+// GetRouter gets the Router from the registry
 func GetRouter(registry *Registry) *Router {
 	if r := registry.Get("router"); r != nil {
 		return r.(*Router)
