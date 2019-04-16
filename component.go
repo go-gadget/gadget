@@ -216,7 +216,9 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		childcomps := ci.Comp.Components()
 
 		if builder = childcomps[componentElement.Type]; builder == nil {
-			builder = rt.Component(componentElement.Type)
+			if cReg := GetComponentRegistry(ci.State.Registry); cReg != nil {
+				builder = cReg.Get(componentElement.Type)
+			}
 		}
 
 		if builder != nil {
@@ -282,6 +284,29 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 
 func (ci *ComponentInstance) HandleEvent(event string) {
 	ci.Comp.Handlers()[event]()
+}
+
+type ComponentRegistry struct {
+	Components map[string]*ComponentFactory
+}
+
+func NewComponentRegistry() *ComponentRegistry {
+	return &ComponentRegistry{Components: make(map[string]*ComponentFactory)}
+}
+
+func (cr *ComponentRegistry) Register(Name string, Factory *ComponentFactory) {
+	cr.Components[Name] = Factory
+}
+
+func (cr *ComponentRegistry) Get(Name string) *ComponentFactory {
+	return cr.Components[Name]
+}
+
+func GetComponentRegistry(registry *Registry) *ComponentRegistry {
+	if cr := registry.Get("components"); cr != nil {
+		return cr.(*ComponentRegistry)
+	}
+	return nil
 }
 
 // A GeneratedComponent is a component that's dynamically built, not declaratively

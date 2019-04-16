@@ -26,6 +26,7 @@ type Gadget struct {
 
 func NewGadget(bridge vtree.Subject) *Gadget {
 	registry := NewRegistry()
+	registry.Register("components", NewComponentRegistry())
 	g := &Gadget{
 		Registry:    registry,
 		Update:      make(chan Action),
@@ -41,9 +42,11 @@ func NewGadget(bridge vtree.Subject) *Gadget {
 }
 
 func (g *Gadget) Router(routes Router) {
-	// So either we make this global, or we structurally pass Gadget around
 	g.Registry.Register("router", &routes)
 	g.Registry.Register("router-state", g.RouterState)
+	// Make router register its components
+	RegisterRouterComponents(g.Registry)
+
 }
 
 func (g *Gadget) Mount(c *ComponentInstance) {

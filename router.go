@@ -258,13 +258,12 @@ func NewRouteTraverser(cr *CurrentRoute) *RouteTraverser {
 	return &RouteTraverser{0, cr}
 }
 
-func (rt *RouteTraverser) Component(ElementType string) *ComponentFactory {
-	if ElementType == "router-view" {
-		return RouterViewComponentFactory
-	} else if ElementType == "router-link" {
-		return RouterLinkComponentFactory
+func RegisterRouterComponents(registry *Registry) {
+	if cr := GetComponentRegistry(registry); cr != nil {
+		cr.Register("router-view", RouterViewComponentFactory)
+		cr.Register("router-link", RouterLinkComponentFactory)
+		fmt.Println("x")
 	}
-	return nil
 }
 
 func (rt *RouteTraverser) PopRoute() *RouteMatch {
