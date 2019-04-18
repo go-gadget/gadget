@@ -6,6 +6,17 @@ import (
 	"github.com/go-gadget/gadget/vtree"
 )
 
+/*
+  Hoe werkt inner content in een component?
+
+  Gewoon text/html is simpel -> zet children over naar component (placeholder)
+  Maar een ander component? Deze wordt gerenderd in de context van de parent, lijkt me
+
+  <comp-1><comp-2><div g-value="x"></div></comp-2></comp-1>
+  met x=1 op comp-1, x=2 op comp-2
+
+*/
+
 func FlattenComponents(base *ComponentInstance) *vtree.Element {
 	executed := base.State.ExecutedTree
 	// DeepClone changes id's, don't want that
@@ -33,9 +44,9 @@ func FlattenComponents(base *ComponentInstance) *vtree.Element {
 }
 
 func TestComponentSlots(t *testing.T) {
-	SetupTestGadget := func() (*Gadget, *TestBridge) {
-		tb := NewTestBridge()
-		g := NewGadget(tb)
+
+	t.Run("Test render of static content", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
 		ChildComponentFactory := MakeDummyFactory(
 			"<div>Hello <component-slot></component-slot> world</div>",
 			nil,
@@ -47,12 +58,6 @@ func TestComponentSlots(t *testing.T) {
 			nil,
 		))
 		g.Mount(component)
-
-		return g, tb
-	}
-
-	t.Run("Test render of content", func(t *testing.T) {
-		g, _ := SetupTestGadget()
 		g.SingleLoop()
 
 		if len(g.App.State.Mounts) != 1 {

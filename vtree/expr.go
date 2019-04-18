@@ -8,7 +8,7 @@ import (
 	"github.com/go-gadget/gadget/j"
 )
 
-type ComponentRenderer func(*Element)
+type ComponentRenderer func(*Element, []*Element)
 
 type Renderer struct {
 	Handler ComponentRenderer
@@ -139,9 +139,13 @@ func (r *Renderer) RenderBind(e *Element, context *Context) {
 	}
 }
 
+func (r *Renderer) Render(e *Element, context *Context) []*Element {
+	return r.RenderComp(e, context, false)
+}
+
 // Render the tree with root `e`, adding, cloning, removing nodes and handled
 // g-<expressions> where necessary, leaving the original tree in tact.
-func (r *Renderer) Render(e *Element, context *Context) []*Element {
+func (r *Renderer) RenderComp(e *Element, context *Context, skipComponent bool) []*Element {
 	// render tree 'e' into a new tree, evaluating expressions,
 	// with given context
 
@@ -184,13 +188,15 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 
 	// Don't recurse into Children on components. In stead,
 	// call ComponentRenderer
-	if e.IsComponent() {
+	if !skipComponent && e.IsComponent() {
+		inner := r.RenderComp(e, context, true)
+		clone.Children = nil
 		if r.Handler != nil {
 			// Handler can decide if re-execution is actually necessary.
 			// Alternatively, store copy of context on element, do
 			// separate execute
 			m := context.Mark()
-			r.Handler(clone)
+			r.Handler(clone, inner)
 			context.Pop(m)
 		}
 	}
