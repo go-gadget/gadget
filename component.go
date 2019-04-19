@@ -247,7 +247,7 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 		}
 	}
 
-	// recurively calls BuildDiff through ComponentHandler
+	// recusively calls BuildDiff through ComponentHandler
 	tree := ci.Execute(ComponentHandler, props)
 
 	var changes vtree.ChangeSet

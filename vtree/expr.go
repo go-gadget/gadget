@@ -154,12 +154,6 @@ func (r *Renderer) RenderSlot(e *Element, context *Context) []*Element {
 }
 
 func (r *Renderer) Render(e *Element, context *Context) []*Element {
-	return r.RenderComp(e, context, false)
-}
-
-// Render the tree with root `e`, adding, cloning, removing nodes and handled
-// g-<expressions> where necessary, leaving the original tree in tact.
-func (r *Renderer) RenderComp(e *Element, context *Context, skipComponent bool) []*Element {
 	// render tree 'e' into a new tree, evaluating expressions,
 	// with given context
 
@@ -205,13 +199,23 @@ func (r *Renderer) RenderComp(e *Element, context *Context, skipComponent bool) 
 	}
 
 	// Render the contents of the component, then call the component handler with it.
-	if !skipComponent && e.IsComponent() {
-		inner := r.RenderComp(e, context, true)
+	if e.IsComponent() {
+		// A component renders to at most 1 element (but could be text?)
+		var inner NodeList
+		if len(e.Children) > 0 {
+			if ce, ok := e.Children[0].(*Element); ok {
+				for _, ee := range r.Render(ce, context) {
+					inner = append(inner, ee)
+				}
+			} else {
+				inner = e.Children
+			}
+		}
 		j.J("Rendered comp "+e.Type, inner)
 		clone.Children = nil
 		if r.Handler != nil {
 			m := context.Mark()
-			r.Handler(clone, inner[0].Children)
+			r.Handler(clone, inner)
 			context.Pop(m)
 		}
 	}

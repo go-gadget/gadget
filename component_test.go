@@ -84,8 +84,11 @@ func TestComponentSlots(t *testing.T) {
 	})
 	/*
 
-		Does not work - nested components are too complex. For example, under which component would
-		the inner component be mounted?
+			Does not work - nested components are too complex. For example, under which component would
+			the inner component be mounted?
+
+			Besides that, since component tags are preserved, they will be re-rendered inside the component
+			slot which fails in horrible ways
 
 		t.Run("Test nested components", func(t *testing.T) {
 			g := NewGadget(NewTestBridge())
@@ -109,7 +112,7 @@ func TestComponentSlots(t *testing.T) {
 			component.SetValue("StringVal", "Friendly")
 			g.SingleLoop()
 
-			if len(g.App.State.Mounts) != 1 {
+			if len(g.App.State.Mounts) != 2 {
 				t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
 			}
 
@@ -120,5 +123,4 @@ func TestComponentSlots(t *testing.T) {
 			}
 		})
 	*/
-	// Stuff to test: named slots
 }
