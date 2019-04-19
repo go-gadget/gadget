@@ -273,7 +273,6 @@ func RegisterRouterComponents(registry *Registry) {
 	if cr := GetComponentRegistry(registry); cr != nil {
 		cr.Register("router-view", RouterViewComponentFactory)
 		cr.Register("router-link", RouterLinkComponentFactory)
-		fmt.Println("x")
 	}
 }
 
