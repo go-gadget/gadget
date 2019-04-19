@@ -82,5 +82,43 @@ func TestComponentSlots(t *testing.T) {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 	})
+	/*
+
+		Does not work - nested components are too complex. For example, under which component would
+		the inner component be mounted?
+
+		t.Run("Test nested components", func(t *testing.T) {
+			g := NewGadget(NewTestBridge())
+			ChildComponentFactory := MakeDummyFactory(
+				"<div>I am child 1 <slot></slot></div>",
+				nil,
+				nil,
+			)
+			Child2ComponentFactory := MakeDummyFactory(
+				"<div>I am child 2 <slot></slot></div>",
+				nil,
+				nil,
+			)
+
+			component := g.NewComponent(MakeDummyFactory(
+				`<div><test-child><test2-child><div g-value="StringVal">123</div></test2-child></test-child></div>`,
+				map[string]*ComponentFactory{"test-child": ChildComponentFactory, "test2-child": Child2ComponentFactory},
+				nil,
+			))
+			g.Mount(component)
+			component.SetValue("StringVal", "Friendly")
+			g.SingleLoop()
+
+			if len(g.App.State.Mounts) != 1 {
+				t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
+			}
+
+			rendered := FlattenComponents(g.App).ToString()
+
+			if rendered != "<div><test-child><div>I am child 1 <slot><test2-child><div>I am child 2 <slot>Friendly</slot></test2-child></slot></test-child></div>" {
+				t.Errorf("Did not get expected rendered tree, got %s", rendered)
+			}
+		})
+	*/
 	// Stuff to test: named slots
 }

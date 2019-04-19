@@ -201,17 +201,15 @@ func (r *Renderer) RenderComp(e *Element, context *Context, skipComponent bool) 
 	// element XXX
 
 	if e.Type == "slot" {
-		return r.RenderSlot(e, context)
+		r.RenderSlot(clone, context)
 	}
-	// Don't recurse into Children on components. In stead,
-	// call ComponentRenderer
+
+	// Render the contents of the component, then call the component handler with it.
 	if !skipComponent && e.IsComponent() {
 		inner := r.RenderComp(e, context, true)
+		j.J("Rendered comp "+e.Type, inner)
 		clone.Children = nil
 		if r.Handler != nil {
-			// Handler can decide if re-execution is actually necessary.
-			// Alternatively, store copy of context on element, do
-			// separate execute
 			m := context.Mark()
 			r.Handler(clone, inner[0].Children)
 			context.Pop(m)
