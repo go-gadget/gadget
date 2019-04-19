@@ -8,10 +8,11 @@ import (
 	"github.com/go-gadget/gadget/j"
 )
 
-type ComponentRenderer func(*Element, []*Element)
+type ComponentRenderer func(*Element, NodeList)
 
 type Renderer struct {
-	Handler ComponentRenderer
+	Handler   ComponentRenderer
+	InnerTree NodeList
 }
 
 func NewRenderer() *Renderer {
@@ -139,6 +140,16 @@ func (r *Renderer) RenderBind(e *Element, context *Context) {
 	}
 }
 
+func (r *Renderer) RenderSlot(e *Element, context *Context) []*Element {
+	// This effectively replaces
+	// return r.InnerTree
+	e.Children = make(NodeList, len(r.InnerTree))
+	for i, ie := range r.InnerTree {
+		e.Children[i] = ie
+	}
+	return []*Element{e}
+}
+
 func (r *Renderer) Render(e *Element, context *Context) []*Element {
 	return r.RenderComp(e, context, false)
 }
@@ -186,6 +197,9 @@ func (r *Renderer) RenderComp(e *Element, context *Context, skipComponent bool) 
 	// g-bind should take the property and set it as attribute on the rendered
 	// element XXX
 
+	if e.Type == "slot" {
+		return r.RenderSlot(e, context)
+	}
 	// Don't recurse into Children on components. In stead,
 	// call ComponentRenderer
 	if !skipComponent && e.IsComponent() {
@@ -196,7 +210,7 @@ func (r *Renderer) RenderComp(e *Element, context *Context, skipComponent bool) 
 			// Alternatively, store copy of context on element, do
 			// separate execute
 			m := context.Mark()
-			r.Handler(clone, inner)
+			r.Handler(clone, inner[0].Children)
 			context.Pop(m)
 		}
 	}

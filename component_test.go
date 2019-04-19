@@ -48,7 +48,7 @@ func TestComponentSlots(t *testing.T) {
 	t.Run("Test render of static content", func(t *testing.T) {
 		g := NewGadget(NewTestBridge())
 		ChildComponentFactory := MakeDummyFactory(
-			"<div>Hello <component-slot></component-slot> world</div>",
+			"<div>Hello <slot></slot> world</div>",
 			nil,
 			nil,
 		)
@@ -66,10 +66,10 @@ func TestComponentSlots(t *testing.T) {
 
 		rendered := FlattenComponents(g.App).ToString()
 
-		// Liefst wil je de hele tree gerenderd hebben
-		if rendered != "<div>So, <test-child><div>Hello <component-slot>friendly</component-slot></div></test-child></div>" {
+		if rendered != "<div>So, <test-child><div>Hello <slot>friendly</slot> world</div></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
 
 	})
+	// Stuff to test: named slots, default value in slot
 }

@@ -22,8 +22,6 @@ type Gadget struct {
 	RouterState *RouterState
 	Traverser   *RouteTraverser
 	Registry    *Registry
-
-	PendingInner []*vtree.Element // piggyback on gadget, for now
 }
 
 func NewGadget(bridge vtree.Subject) *Gadget {

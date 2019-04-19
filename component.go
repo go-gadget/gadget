@@ -77,8 +77,9 @@ type ComponentState struct {
 }
 
 type ComponentInstance struct {
-	Comp  Component
-	State *ComponentState
+	Comp      Component
+	State     *ComponentState
+	InnerTree vtree.NodeList // might become a map
 }
 
 func (ci *ComponentInstance) Init() {
@@ -138,6 +139,7 @@ func (ci *ComponentInstance) Execute(handler vtree.ComponentRenderer, props []*v
 	data := ci.Comp.Data()
 	renderer := vtree.NewRenderer()
 	renderer.Handler = handler
+	renderer.InnerTree = ci.InnerTree
 
 	for _, variable := range props {
 		// context.PushValue(variable.Name, variable.Value)
@@ -191,14 +193,12 @@ func (ci *ComponentInstance) ExtractProps(componentElement *vtree.Element) []*vt
 func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTraverser) (res vtree.ChangeSet) {
 	// collect changesets
 	var cs []vtree.ChangeSet
-	gadget := GetGadget(ci.State.Registry)
+
 	// Invoked when something component-like is encountered. Includes <router-view>
-	ComponentHandler := func(componentElement *vtree.Element, innerElements []*vtree.Element) {
+	ComponentHandler := func(componentElement *vtree.Element, innerElements vtree.NodeList) {
 		// store, if anythingo
 		// actually, not gonna work: <c>hello</c> -> <div><x></x><slot></slot></div>
 		// <x> component wil already clear inner for slot
-		gadget.PendingInner = innerElements
-
 		var builder *ComponentFactory
 
 		// Is this really about traversal? Or more about pre-call/render/?
@@ -226,21 +226,10 @@ func (ci *ComponentInstance) BuildDiff(props []*vtree.Variable, rt *RouteTravers
 			}
 		}
 
-		if componentElement.Type == "component-slot" {
-			gf := GenerateComponentFactory("slot", "<div></div>", nil, nil)
-			cf := gadget.NewComponent(gf)
-			cf.Init()
-
-			j.J("A", cf.State.ExecutedTree)
-			j.J("B", gadget.PendingInner)
-			cf.State.ExecutedTree = &vtree.Element{Type: "slot"}
-			for _, e := range gadget.PendingInner {
-				cf.State.ExecutedTree.Children = append(cf.State.ExecutedTree.Children, e)
-			}
-
-		} else if builder != nil {
+		if builder != nil {
 			// builder is a ComponentComponentFactory, resulting in a Component, not a ComponentInstance
 			cf := GetGadget(ci.State.Registry).NewComponent(builder)
+			cf.InnerTree = innerElements
 			m := ci.Mount(cf, componentElement)
 
 			m.Name = builder.Name
