@@ -211,7 +211,6 @@ func (r *Renderer) Render(e *Element, context *Context) []*Element {
 				inner = e.Children
 			}
 		}
-		j.J("Rendered comp "+e.Type, inner)
 		clone.Children = nil
 		if r.Handler != nil {
 			m := context.Mark()
