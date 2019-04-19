@@ -69,7 +69,31 @@ func TestComponentSlots(t *testing.T) {
 		if rendered != "<div>So, <test-child><div>Hello <slot>friendly</slot> world</div></test-child></div>" {
 			t.Errorf("Did not get expected rendered tree, got %s", rendered)
 		}
-
 	})
-	// Stuff to test: named slots, default value in slot
+	t.Run("Test inner default slot", func(t *testing.T) {
+		g := NewGadget(NewTestBridge())
+		ChildComponentFactory := MakeDummyFactory(
+			"<div>Hello <slot>kind</slot> world</div>",
+			nil,
+			nil,
+		)
+		component := g.NewComponent(MakeDummyFactory(
+			"<div>So, <test-child></test-child></div>",
+			map[string]*ComponentFactory{"test-child": ChildComponentFactory},
+			nil,
+		))
+		g.Mount(component)
+		g.SingleLoop()
+
+		if len(g.App.State.Mounts) != 1 {
+			t.Errorf("Expected 1 mounted component, found %d", len(g.App.State.Mounts))
+		}
+
+		rendered := FlattenComponents(g.App).ToString()
+
+		if rendered != "<div>So, <test-child><div>Hello <slot>kind</slot> world</div></test-child></div>" {
+			t.Errorf("Did not get expected rendered tree, got %s", rendered)
+		}
+	})
+	// Stuff to test: named slots
 }

@@ -140,12 +140,15 @@ func (r *Renderer) RenderBind(e *Element, context *Context) {
 	}
 }
 
+// RenderSlot replaces the special <slot></slot> tag with the contents
+// of the component it's part of
 func (r *Renderer) RenderSlot(e *Element, context *Context) []*Element {
-	// This effectively replaces
-	// return r.InnerTree
-	e.Children = make(NodeList, len(r.InnerTree))
-	for i, ie := range r.InnerTree {
-		e.Children[i] = ie
+	// If there's no content, keep whatever <slot> currently contains (default)
+	if len(r.InnerTree) != 0 {
+		e.Children = make(NodeList, len(r.InnerTree))
+		for i, ie := range r.InnerTree {
+			e.Children[i] = ie
+		}
 	}
 	return []*Element{e}
 }
