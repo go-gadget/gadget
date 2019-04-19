@@ -296,7 +296,7 @@ func (r *RouterLinkComponent) Props() []string {
 }
 
 func (r *RouterLinkComponent) Template() string {
-	return `<button g-click="transition">XXXfillin</button>`
+	return `<button g-click="transition"><slot>Click</slot></button>`
 }
 
 func (r *RouterLinkComponent) Handlers() map[string]Handler {
